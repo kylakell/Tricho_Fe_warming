@@ -3,7 +3,7 @@ title: "Tricho_Colim_DESeq2"
 author: "Nina Yang, PhD Candidate, Hutchins Lab, USC"
 adapted by: "Kyla Kelly, PhD Candidate, Hutchins Lab, USC"
 date: "9/28/2021"
-updated: "3/10/2022"
+updated: "2/21/2023"
 output: html_document
 ---
 

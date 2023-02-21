@@ -1,0 +1,2395 @@
+---
+title: "Tricho_Fewarming_DifferentalGeneExpression"
+author: "Nina Yang, PhD"
+adapted by: "Kyla Kelly, PhD Candidate, Hutchins Lab, USC"
+date: "12/16/2022"
+updated: "2/21/2023"
+output: html_document
+---
+
+## Background
+
+This document outlines the steps taken to for the Venn Diagram and clusterProfiler analyses.
+
+
+**1. Install (if required) & upload packages into your current session**
+
+```{r install-packages, eval = TRUE, message = FALSE, warning = FALSE}
+if (!requireNamespace("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+if(!require(dplyr)){install.packages("dplyr")}
+if(!require(tidyverse)){install.packages("tidyverse")}
+if(!require(VennDiagram)){install.packages("VennDiagram")}
+if(!require(VennDiagram)){install.packages("gridExtra")}
+if(!require(VennDiagram)){install.packages("grid")}
+if(!require(VennDiagram)){install.packages("lattice")}
+```
+
+**2. Upload the package into your current session**
+```{r library, eval = TRUE, message = FALSE, warning = FALSE}
+library("tidyverse")
+library("clusterProfiler")
+library("VennDiagram")
+library("gridExtra")
+library("grid")
+library("lattice")
+```
+
+# set up the BP, MF, and CC things
+```{r}
+bg <- read_csv("/Users/kylakelly/Documents/Tricho_FeWarm/Tricho_Fe_warming/vd_analysis/tricho_GO_KO_database.csv", col_names = TRUE)
+# should these NA values for gene_id be the # thing I use earlier?
+head(bg)
+tail(bg)
+
+
+# BP
+bg_BP <- filter(bg, GO.Ontology == "BP")
+head(bg_BP)
+nrow(bg_BP)
+
+go2gene_BP <- bg_BP[, c("GO.ID", "gene_id")]
+go2name_BP <- bg_BP[, c("GO.ID", "GO.Term")]
+
+# MF
+bg_MF <- filter(bg, GO.Ontology == "MF")
+head(bg_MF)
+nrow(bg_MF)
+
+go2gene_MF <- bg_MF[, c("GO.ID", "gene_id")]
+go2name_MF <- bg_MF[, c("GO.ID", "GO.Term")]
+
+# CC
+bg_CC <- filter(bg, GO.Ontology == "CC")
+head(bg_CC)
+nrow(bg_CC)
+
+go2gene_CC <- bg_CC[, c("GO.ID", "gene_id")]
+go2name_CC <- bg_CC[, c("GO.ID", "GO.Term")]
+
+# KO
+bg_KO <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/compile/filtered_tricho_kofamscan.csv", col_names = TRUE) # this is the file that will be used for the universe or background genes
+colnames(bg_KO)
+bg_KO <- bg_KO$gene_id
+head(bg_KO)
+tail(bg_KO)
+```
+
+**3. Process the DESeq2 outputs to generate Venn Diagrams and clusterProfiler inputs**
+## deleted the day vs night stuff, tho the way the comparisons are laid out might help me later 
+
+### Replete vs Limited (Day)
+
+```{r RL_input, eval = TRUE, message = FALSE, warning = FALSE}
+setwd("/Users/kylakelly/Documents/USC/research/seq/tricho/deseq2/temp")
+
+cts <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/deseq2/tricho_trimmed_forDESeq2.csv")
+head(cts) 
+gene_id <- cts[c(1:2)] # extract gene_id to add to the other dataframes because this number was left off. The numeric ordering of these files is the same as the input file which has gene_id as well.
+head(gene_id)
+
+# set up replete vs limited dataframes (day)
+sub_df <- read_csv("RL22_DESeqresults.csv")
+head(sub_df)
+
+opt_df <- read_csv("RL27_DESeqresults.csv")
+head(opt_df)
+
+supra_df <- read_csv("RL32_DESeqresults.csv")
+head(supra_df)
+
+# sub 
+# sub_df <- cbind(gene_id, sub) # append gene_ids
+summary(sub_df)
+head(sub_df)
+subRL <- dplyr::select(sub_df, gene_id, log2FoldChange, padj) # select relevant columns
+head(subRL)
+dim(subRL)
+subRL.vector <- dplyr::filter(subRL, padj < 0.05) # all the differentially expressed sub RL genes 
+head(subRL.vector)
+subRL.vector <- select(subRL.vector, gene_id, log2FoldChange) #remove padj column
+dim(subRL.vector)
+head(subRL.vector)
+names(subRL.vector)[2] <- "subRL_FC"
+head(subRL.vector)
+
+# opt 
+# opt_df <- cbind(gene_id, opt) # append gene_ids
+summary(opt_df)
+head(opt_df)
+optRL <- dplyr::select(opt_df, gene_id, log2FoldChange, padj) # select relevant columns
+head(optRL)
+dim(optRL)
+optRL.vector <- dplyr::filter(optRL, padj < 0.05) # all the differentially expressed opt RL genes 
+head(optRL.vector)
+optRL.vector <- select(optRL.vector, gene_id, log2FoldChange) #remove padj column
+dim(optRL.vector)
+head(optRL.vector)
+names(optRL.vector)[2] <- "optRL_FC"
+head(optRL.vector)
+
+# supra 
+# supra_df <- cbind(gene_id, supra) # append gene_ids
+summary(supra_df)
+head(supra_df)
+supraRL <- dplyr::select(supra_df, gene_id, log2FoldChange, padj) # select relevant columns
+head(supraRL)
+dim(supraRL)
+supraRL.vector <- dplyr::filter(supraRL, padj < 0.05) # all the differentially expressed supra RL genes 
+head(supraRL.vector)
+supraRL.vector <- select(supraRL.vector, gene_id, log2FoldChange) #remove padj column
+dim(supraRL.vector)
+head(supraRL.vector)
+names(supraRL.vector)[2] <- "supraRL_FC"
+head(supraRL.vector)
+
+# build a replete vs limited dataframe that combines, sub, opt, and supra differentially expressed genes
+
+# start with the list of all relevant genes (the full list of deduped and trimmed list of genes)
+
+RL.vector <- left_join(gene_id, subRL.vector, by = "gene_id")
+head(RL.vector)
+dim(RL.vector)
+RL.vector <- left_join(RL.vector, optRL.vector, by = "gene_id")
+dim(RL.vector)
+head(RL.vector)
+RL.vector <- left_join(RL.vector, supraRL.vector, by = "gene_id")
+head(RL.vector)
+dim(RL.vector)
+head(RL.vector, 10)
+tail(RL.vector, 10)
+```
+
+```{r RL_venn, eval = TRUE, message = FALSE, warning = FALSE}
+setwd("/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/rep_lim")
+
+# build Venn Diagram input
+venn_df <- RL.vector %>%
+  gather(key = exp_type, value = foldchange, -c(gene_id))
+glimpse(venn_df)
+
+#### this is for all diel genes
+venn_sub <- venn_df %>% 
+  filter(exp_type == "subRL_FC" & !is.na(foldchange)) %>% 
+  pull(gene_id)
+
+venn_opt <- venn_df %>% 
+  filter(exp_type == "optRL_FC" & !is.na(foldchange)) %>% 
+  pull(gene_id)
+
+venn_supra <- venn_df %>% 
+  filter(exp_type == "supraRL_FC" & !is.na(foldchange)) %>% 
+  pull(gene_id)
+
+## this is for positive fold change (increase in abundance)
+pos_venn_sub <- venn_df %>% 
+  filter(exp_type == "subRL_FC" & !is.na(foldchange) & foldchange > 0) %>% 
+  pull(gene_id)
+
+pos_venn_opt <- venn_df %>% 
+  filter(exp_type == "optRL_FC" & !is.na(foldchange) & foldchange > 0) %>% 
+  pull(gene_id)
+
+pos_venn_supra <- venn_df %>% 
+  filter(exp_type == "supraRL_FC" & !is.na(foldchange) & foldchange > 0) %>% 
+  pull(gene_id)
+
+## this is for negative fold change (decrease in abundance)
+
+neg_venn_sub <- venn_df %>% 
+  filter(exp_type == "subRL_FC" & !is.na(foldchange) & foldchange < 0) %>% 
+  pull(gene_id)
+
+neg_venn_opt <- venn_df %>% 
+  filter(exp_type == "optRL_FC" & !is.na(foldchange) & foldchange < 0) %>% 
+  pull(gene_id)
+
+neg_venn_supra <- venn_df %>% 
+  filter(exp_type == "supraRL_FC" & !is.na(foldchange) & foldchange < 0) %>% 
+  pull(gene_id)
+
+summary(pos_venn_sub)
+summary(pos_venn_opt)
+summary(pos_venn_supra)
+
+summary(neg_venn_sub)
+summary(neg_venn_opt)
+summary(neg_venn_supra)
+
+venn_list_pos <- list("22C" = pos_venn_sub,
+                      "27C" = pos_venn_opt,
+                      "32C" = pos_venn_supra)
+
+venn_list_neg <- list("22C" = neg_venn_sub,
+                      "27C" = neg_venn_opt,
+                      "32C" = neg_venn_supra)
+
+
+# Upregulated Day RL DEG Venn Diagrams - build Venn Diagram and extract gene lists
+
+venn <- venn.diagram(venn_list_pos, NULL,
+                          col = "transparent",
+                          fill = c("#350498", "#B93289", "#FBA139"),
+                          alpha = 0.50,
+                          cex = 0.8,
+                          fontfamily = "sans",
+                          fontface = "bold",
+                          cat.col = c("#350498", "#B93289", "#FBA139"),
+                          cat.cex = 0.8,
+                          cat.fontfamily = "sans",
+                          margin = 0.2,
+                          main.fontfamily = "sans",
+                          print.mode = c("raw","percent"), # Show both numbers and percent
+                          main.pos = c(0.5,0.9))
+
+ggsave("up_venn.pdf", plot = venn, height=120, width=120, units='mm', dpi=500)
+
+grid.draw(venn)
+
+# this creates a file that is upregulated for Fe-replete which is downregulated for Fe-limited
+pdf(file = "Limited_down.pdf")
+grid.draw(venn)
+dev.off()
+
+## extract the overlap analysis so you have the list of genes that are in each section of the venn diagram
+
+list <- calculate.overlap(venn_list_pos)
+
+summary(list)
+
+# core genes shared across day treatments
+write.csv(list$a5,"Limited_Core_down.csv", row.names = TRUE)
+
+# shared between 22 & 27
+write.csv(list$a2,"Limited_22_27_Shared_down.csv", row.names = TRUE)
+
+# shared between 22 & 32
+write.csv(list$a4,"Limited_22_32_Shared_down.csv", row.names = TRUE)
+
+# shared between 27 & 32
+write.csv(list$a6,"Limited_27_32_Shared_down.csv", row.names = TRUE)
+
+# unique 22C
+write.csv(list$a1,"Limited_22_Unique_down.csv", row.names = TRUE)
+
+# unique 27C
+write.csv(list$a3,"Limited_27_Unique_down.csv", row.names = TRUE)
+
+# unique 32C
+write.csv(list$a7,"Limited_32_Unique_down.csv", row.names = TRUE)
+
+
+# Downregulated Day RL DEG Venn Diagrams - build Venn Diagram and extract gene lists (upregulated for Fe-limited)
+
+venn <- venn.diagram(venn_list_neg, NULL,
+                          col = "transparent",
+                          fill = c("#350498", "#B93289", "#FBA139"),
+                          alpha = 0.50,
+                          cex = 0.8,
+                          fontfamily = "sans",
+                          fontface = "bold",
+                          cat.col = c("#350498", "#B93289", "#FBA139"),
+                          cat.cex = 0.8,
+                          cat.fontfamily = "sans",
+                          margin = 0.2,
+                          main.fontfamily = "sans",
+                          print.mode = c("raw","percent"), # Show both numbers and percent
+                          main.pos = c(0.5,0.9))
+
+ggsave("down_venn.pdf", plot = venn, height=120, width=120, units='mm', dpi=500)
+
+grid.draw(venn)
+
+# this creates a file that is upregulated for Fe-replete which is downregulated for Fe-limited
+pdf(file = "Limited_up.pdf")
+grid.draw(venn)
+dev.off()
+
+
+## extract the overlap analysis so you have the list of genes that are in each section of the venn diagram
+
+list <- calculate.overlap(venn_list_neg)
+
+summary(list)
+
+# core genes shared across day treatments
+write.csv(list$a5,"Limited_Core_up.csv", row.names = TRUE)
+
+# shared between 22 & 27
+write.csv(list$a2,"Limited_22_27_Shared_up.csv", row.names = TRUE)
+
+# shared between 22 & 32
+write.csv(list$a4,"Limited_22_32_Shared_up.csv", row.names = TRUE)
+
+# shared between 27 & 32
+write.csv(list$a6,"Limited_27_32_Shared_up.csv", row.names = TRUE)
+
+# unique 22C
+write.csv(list$a1,"Limited_22_Unique_up.csv", row.names = TRUE)
+
+# unique 27C
+write.csv(list$a3,"Limited_27_Unique_up.csv", row.names = TRUE)
+
+# unique 32C
+write.csv(list$a7,"Limited_32_Unique_up.csv", row.names = TRUE)
+
+```
+
+
+
+# cluster profiler core limited down and up
+```{r Limited_down/up_core_clusterProfiler, eval = TRUE, message = FALSE, warning = FALSE}
+setwd("/Users/kylakelly/Documents/USC/research/seq/tricho/cluster_profiler/rep_lim")
+
+## down 
+
+df <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/rep_lim/Limited_Core_down.csv")
+head(df)
+dim(df)
+df_ids <- df$x
+dim(df)
+
+# BP
+enrich <- enricher(df_ids, TERM2GENE = go2gene_BP, TERM2NAME = go2name_BP, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="/Users/kylakelly/Documents/USC/research/seq/tricho/cluster_profiler/rep_lim/Core_down_enrich_BP.csv", row.names = TRUE) # enricher results
+
+# MF
+enrich <- enricher(df_ids, TERM2GENE = go2gene_MF, TERM2NAME = go2name_MF, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="/Users/kylakelly/Documents/USC/research/seq/tricho/cluster_profiler/rep_lim/Core_down_enrich_MF.csv", row.names = TRUE) # enricher results
+
+
+# CC
+enrich <- enricher(df_ids, TERM2GENE = go2gene_CC, TERM2NAME = go2name_CC, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="/Users/kylakelly/Documents/USC/research/seq/tricho/cluster_profiler/rep_lim/Core_down_enrich_CC.csv", row.names = TRUE) # enricher results
+
+# KO
+enrich <- enrichKEGG(gene = df_ids, organism = "ko", universe = bg_KO, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="/Users/kylakelly/Documents/USC/research/seq/tricho/cluster_profiler/rep_lim/Core__limdown_enrich_KO.csv", row.names = TRUE) # enricher results
+
+
+## up
+
+df <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/rep_lim/Limited_Core_up.csv")
+head(df)
+dim(df)
+df_ids <- df$x
+dim(df)
+
+# BP
+enrich <- enricher(df_ids, TERM2GENE = go2gene_BP, TERM2NAME = go2name_BP, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Core_up_enrich_BP.csv", row.names = TRUE) # enricher results
+
+# MF
+enrich <- enricher(df_ids, TERM2GENE = go2gene_MF, TERM2NAME = go2name_MF, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Core_up_enrich_MF.csv", row.names = TRUE) # enricher results
+
+
+# CC
+enrich <- enricher(df_ids, TERM2GENE = go2gene_CC, TERM2NAME = go2name_CC, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Core_up_enrich_CC.csv", row.names = TRUE) # enricher results
+
+# KO
+enrich <- enrichKEGG(gene = df_ids, organism = "ko", universe = bg_KO, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Core_up_enrich_KO.csv", row.names = TRUE) # enricher results
+
+```
+
+# cluster profiler shared/unique limited up/down
+```{r Limited_up/down_shared_unique_clusterProfiler, eval = TRUE, message = FALSE, warning = FALSE}
+
+# Shared 23 and 27
+setwd("/Users/kylakelly/Documents/USC/research/seq/tricho/cluster_profiler/rep_lim")
+
+df <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/rep_lim/Limited_22_27_Shared_up.csv")
+
+head(df)
+df_ids <- df$x
+
+# BP
+enrich <- enricher(df_ids, TERM2GENE = go2gene_BP, TERM2NAME = go2name_BP, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Shared_22_27_up_enrich_BP.csv", row.names = TRUE) # enricher results
+
+
+# MF
+enrich <- enricher(df_ids, TERM2GENE = go2gene_MF, TERM2NAME = go2name_MF, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Shared_22_27_up_enrich_MF.csv", row.names = TRUE) # enricher results
+
+
+# CC
+enrich <- enricher(df_ids, TERM2GENE = go2gene_CC, TERM2NAME = go2name_CC, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Shared_22_27_up_enrich_CC.csv", row.names = TRUE) # enricher results
+
+# KO
+enrich <- enrichKEGG(gene = df_ids, organism = "ko", universe = bg_KO, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Shared_22_27_up_enrich_KO.csv", row.names = TRUE) # enricher results
+
+
+# Shared 22 and 32
+
+df <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/rep_lim/Limited_22_32_Shared_up.csv")
+head(df)
+df_ids <- df$x
+
+# BP
+enrich <- enricher(df_ids, TERM2GENE = go2gene_BP, TERM2NAME = go2name_BP, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Shared_22_32_up_enrich_BP.csv", row.names = TRUE) # enricher results
+
+# MF
+enrich <- enricher(df_ids, TERM2GENE = go2gene_MF, TERM2NAME = go2name_MF, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Shared_22_32_up_enrich_MF.csv", row.names = TRUE) # enricher results
+
+
+# CC
+enrich <- enricher(df_ids, TERM2GENE = go2gene_CC, TERM2NAME = go2name_CC, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Shared_22_32_up_enrich_CC.csv", row.names = TRUE) # enricher results
+
+# KO
+enrich <- enrichKEGG(gene = df_ids, organism = "ko", universe = bg_KO, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Shared_22_32_up_enrich_KO.csv", row.names = TRUE) # enricher results
+
+
+# shared 27 and 32
+
+# BP
+enrich <- enricher(df_ids, TERM2GENE = go2gene_BP, TERM2NAME = go2name_BP, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Shared_27_32_up_enrich_BP.csv", row.names = TRUE) # enricher results
+
+# MF
+enrich <- enricher(df_ids, TERM2GENE = go2gene_MF, TERM2NAME = go2name_MF, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Shared_27_32_up_enrich_MF.csv", row.names = TRUE) # enricher results
+
+
+# CC
+enrich <- enricher(df_ids, TERM2GENE = go2gene_CC, TERM2NAME = go2name_CC, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Shared_27_32_up_enrich_CC.csv", row.names = TRUE) # enricher results
+
+# KO
+enrich <- enrichKEGG(gene = df_ids, organism = "ko", universe = bg_KO, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Shared_27_32_up_enrich_KO.csv", row.names = TRUE) # enricher results
+
+# Unique 22
+
+df <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/rep_lim/Limited_22_Unique_up.csv")
+head(df)
+df_ids <- df$x
+dim(df)
+
+# BP
+enrich <- enricher(df_ids, TERM2GENE = go2gene_BP, TERM2NAME = go2name_BP, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Unique_22_up_enrich_BP.csv", row.names = TRUE) # enricher results
+
+# MF
+enrich <- enricher(df_ids, TERM2GENE = go2gene_MF, TERM2NAME = go2name_MF, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Unique_22_up_enrich_MF.csv", row.names = TRUE) # enricher results
+
+
+# CC
+enrich <- enricher(df_ids, TERM2GENE = go2gene_CC, TERM2NAME = go2name_CC, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Unique_22_up_enrich_CC.csv", row.names = TRUE) # enricher results
+
+# KO
+enrich <- enrichKEGG(gene = df_ids, organism = "ko", universe = bg_KO, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Unique_22_up_enrich_KO.csv", row.names = TRUE) # enricher results
+
+
+# Unique 27
+
+df <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/rep_lim/Limited_27_Unique_up.csv")
+head(df)
+df_ids <- df$x
+dim(df)
+
+# BP
+enrich <- enricher(df_ids, TERM2GENE = go2gene_BP, TERM2NAME = go2name_BP, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Unique_27_up_enrich_BP.csv", row.names = TRUE) # enricher results
+
+
+# MF
+enrich <- enricher(df_ids, TERM2GENE = go2gene_MF, TERM2NAME = go2name_MF, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Unique_27_up_enrich_MF.csv", row.names = TRUE) # enricher results
+
+
+# CC
+enrich <- enricher(df_ids, TERM2GENE = go2gene_CC, TERM2NAME = go2name_CC, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Unique_27_up_enrich_CC.csv", row.names = TRUE) # enricher results
+
+# KO
+enrich <- enrichKEGG(gene = df_ids, organism = "ko", universe = bg_KO, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Unique_27_up_enrich_KO.csv", row.names = TRUE) # enricher results
+
+
+# Unique 32
+setwd("/Users/kylakelly/Documents/USC/research/seq/tricho/cluster_profiler/rep_lim/")
+df <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/rep_lim/Limited_32_Unique_up.csv")
+head(df)
+df_ids <- df$x
+dim(df)
+
+# BP
+enrich <- enricher(df_ids, TERM2GENE = go2gene_BP, TERM2NAME = go2name_BP, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Unique_32_up_enrich_BP.csv", row.names = TRUE) # enricher results
+
+
+# MF
+enrich <- enricher(df_ids, TERM2GENE = go2gene_MF, TERM2NAME = go2name_MF, minGSSize = 5)
+enrich
+
+
+write.csv(enrich, file="Unique_32_up_enrich_MF.csv", row.names = TRUE) # enricher results
+
+
+# CC
+enrich <- enricher(df_ids, TERM2GENE = go2gene_CC, TERM2NAME = go2name_CC, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Unique_32_up_enrich_CC.csv", row.names = TRUE) # enricher results
+
+# KO
+enrich <- enrichKEGG(gene = df_ids, organism = "ko", universe = bg_KO, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Unique_32_up_enrich_KO.csv", row.names = TRUE) # enricher results
+
+
+# Shared 22 and 27
+
+df <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/rep_lim/Limited_22_27_Shared_down.csv")
+
+# BP
+enrich <- enricher(df_ids, TERM2GENE = go2gene_BP, TERM2NAME = go2name_BP, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Shared_22_27_down_enrich_BP.csv", row.names = TRUE) # enricher results
+
+
+# MF
+enrich <- enricher(df_ids, TERM2GENE = go2gene_MF, TERM2NAME = go2name_MF, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Shared_22_27_down_enrich_MF.csv", row.names = TRUE) # enricher results
+
+
+# CC
+enrich <- enricher(df_ids, TERM2GENE = go2gene_CC, TERM2NAME = go2name_CC, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Shared_22_27_down_enrich_CC.csv", row.names = TRUE) # enricher results
+
+# KO
+enrich <- enrichKEGG(gene = df_ids, organism = "ko", universe = bg_KO, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Shared_22_27_down_enrich_KO.csv", row.names = TRUE) # enricher results
+
+
+# Shared 22 and 32
+
+df <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/rep_lim/Limited_22_32_Shared_down.csv")
+head(df)
+df_ids <- df$x
+
+# BP
+enrich <- enricher(df_ids, TERM2GENE = go2gene_BP, TERM2NAME = go2name_BP, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Shared_22_32_down_enrich_BP.csv", row.names = TRUE) # enricher results
+
+# MF
+enrich <- enricher(df_ids, TERM2GENE = go2gene_MF, TERM2NAME = go2name_MF, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Shared_22_32_down_enrich_MF.csv", row.names = TRUE) # enricher results
+
+
+# CC
+enrich <- enricher(df_ids, TERM2GENE = go2gene_CC, TERM2NAME = go2name_CC, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Shared_22_32_down_enrich_CC.csv", row.names = TRUE) # enricher results
+
+# KO
+enrich <- enrichKEGG(gene = df_ids, organism = "ko", universe = bg_KO, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Shared_22_32_down_enrich_KO.csv", row.names = TRUE) # enricher results
+
+
+# shared 27 and 32
+
+df <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/rep_lim/Limited_27_32_Shared_down.csv")
+head(df)
+df_ids <- df$x
+
+# BP
+enrich <- enricher(df_ids, TERM2GENE = go2gene_BP, TERM2NAME = go2name_BP, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Shared_27_32_down_enrich_BP.csv", row.names = TRUE) # enricher results
+
+# MF
+enrich <- enricher(df_ids, TERM2GENE = go2gene_MF, TERM2NAME = go2name_MF, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Shared_27_32_down_enrich_MF.csv", row.names = TRUE) # enricher results
+
+
+# CC
+enrich <- enricher(df_ids, TERM2GENE = go2gene_CC, TERM2NAME = go2name_CC, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Shared_27_32_down_enrich_CC.csv", row.names = TRUE) # enricher results
+
+# KO
+enrich <- enrichKEGG(gene = df_ids, organism = "ko", universe = bg_KO, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Shared_27_32_down_enrich_KO.csv", row.names = TRUE) # enricher results
+
+# Unique 22
+
+df <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/rep_lim/Limited_22_Unique_down.csv")
+head(df)
+df_ids <- df$x
+dim(df)
+
+# BP
+enrich <- enricher(df_ids, TERM2GENE = go2gene_BP, TERM2NAME = go2name_BP, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Unique_22_down_enrich_BP.csv", row.names = TRUE) # enricher results
+
+# MF
+enrich <- enricher(df_ids, TERM2GENE = go2gene_MF, TERM2NAME = go2name_MF, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Unique_22_down_enrich_MF.csv", row.names = TRUE) # enricher results
+
+
+# CC
+enrich <- enricher(df_ids, TERM2GENE = go2gene_CC, TERM2NAME = go2name_CC, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Unique_22_down_enrich_CC.csv", row.names = TRUE) # enricher results
+
+# KO
+enrich <- enrichKEGG(gene = df_ids, organism = "ko", universe = bg_KO, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Unique_22_down_enrich_KO.csv", row.names = TRUE) # enricher results
+
+
+# Unique 27
+
+df <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/rep_lim/Limited_27_Unique_down.csv")
+head(df)
+df_ids <- df$x
+dim(df)
+
+# BP
+enrich <- enricher(df_ids, TERM2GENE = go2gene_BP, TERM2NAME = go2name_BP, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Unique_27_down_enrich_BP.csv", row.names = TRUE) # enricher results
+
+
+# MF
+enrich <- enricher(df_ids, TERM2GENE = go2gene_MF, TERM2NAME = go2name_MF, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Unique_27_down_enrich_MF.csv", row.names = TRUE) # enricher results
+
+
+# CC
+enrich <- enricher(df_ids, TERM2GENE = go2gene_MF, TERM2NAME = go2name_MF, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Unique_27_down_enrich_CC.csv", row.names = TRUE) # enricher results
+
+# KO
+enrich <- enrichKEGG(gene = df_ids, organism = "ko", universe = bg_KO, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Unique_27_down_enrich_KO.csv", row.names = TRUE) # enricher results
+
+
+# Unique 32
+
+df <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/rep_lim/Limited_32_Unique_down.csv")
+head(df)
+df_ids <- df$x
+dim(df)
+
+# BP
+enrich <- enricher(df_ids, TERM2GENE = go2gene_BP, TERM2NAME = go2name_BP, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Unique_32_down_enrich_BP.csv", row.names = TRUE) # enricher results
+
+
+# MF
+enrich <- enricher(df_ids, TERM2GENE = go2gene_MF, TERM2NAME = go2name_MF, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Unique_32_down_enrich_MF.csv", row.names = TRUE) # enricher results
+
+
+# CC
+enrich <- enricher(df_ids, TERM2GENE = go2gene_CC, TERM2NAME = go2name_CC, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Unique_32_down_enrich_CC.csv", row.names = TRUE) # enricher results
+
+# KO
+enrich <- enrichKEGG(gene = df_ids, organism = "ko", universe = bg_KO, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="Unique_32_down_enrich_KO.csv", row.names = TRUE) # enricher results
+
+```
+
+### R vs L for different temperatures
+
+```{r RL_input_temp, eval = TRUE, message = FALSE, warning = FALSE}
+setwd("/Users/kylakelly/Documents/USC/research/seq/tricho/deseq2/temp")
+
+cts <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/deseq2/tricho_trimmed_forDESeq2.csv")
+head(cts) 
+
+# might not really need this part since I hashed out the cbind code below 
+gene_id <- cts[c(1:2)] # extract gene_id to add to the other dataframes because this number was left off. The numeric ordering of these files is the same as the input file which has gene_id as well.
+head(gene_id)
+
+# set up replete vs limited dataframes (day)
+sub_df <- read_csv("RL22_DESeqresults.csv")
+head(sub)
+
+opt_df <- read_csv("RL27_DESeqresults.csv")
+head(opt)
+
+supra_df <- read_csv("RL32_DESeqresults.csv")
+head(supra)
+
+# sub 
+# sub_df <- cbind(gene_id, sub) # append gene_ids
+summary(sub_df)
+head(sub_df)
+subRL <- dplyr::select(sub_df, gene_id, log2FoldChange, padj) # select relevant columns
+head(subRL)
+dim(subRL)
+subRL.vector <- dplyr::filter(subRL, padj < 0.05) # all the differentially expressed sub RL genes 
+head(subRL.vector)
+subRL.vector <- select(subRL.vector, gene_id, log2FoldChange) #remove padj column
+dim(subRL.vector)
+head(subRL.vector)
+names(subRL.vector)[2] <- "subRL_FC"
+head(subRL.vector)
+
+# for replete
+sub_rep <- filter(subRL.vector, subRL_FC > 0 )
+dim(sub_rep)
+
+# for limited
+sub_lim <- filter(subRL.vector, subRL_FC < 0 )
+dim(sub_lim)
+
+# opt 
+# opt_df <- cbind(gene_id, opt) # append gene_ids
+summary(opt_df)
+head(opt_df)
+optRL <- dplyr::select(opt_df, gene_id, log2FoldChange, padj) # select relevant columns
+head(optRL)
+dim(optRL)
+optRL.vector <- dplyr::filter(optRL, padj < 0.05) # all the differentially expressed opt RL genes 
+head(optRL.vector)
+optRL.vector <- select(optRL.vector, gene_id, log2FoldChange) #remove padj column
+dim(optRL.vector)
+head(optRL.vector)
+names(optRL.vector)[2] <- "optRL_FC"
+head(optRL.vector)
+
+# for replete
+opt_rep <- filter(optRL.vector, optRL_FC > 0 )
+dim(opt_rep)
+
+# for limited
+opt_lim <- filter(optRL.vector, optRL_FC < 0 )
+dim(opt_lim)
+
+# supra 
+# supra_df <- cbind(gene_id, supra) # append gene_ids
+summary(supra_df)
+head(supra_df)
+supraRL <- dplyr::select(supra_df, gene_id, log2FoldChange, padj) # select relevant columns
+head(supraRL)
+dim(supraRL)
+supraRL.vector <- dplyr::filter(supraRL, padj < 0.05) # all the differentially expressed supra RL genes 
+head(supraRL.vector)
+supraRL.vector <- select(supraRL.vector, gene_id, log2FoldChange) #remove padj column
+dim(supraRL.vector)
+head(supraRL.vector)
+names(supraRL.vector)[2] <- "supraRL_FC"
+head(supraRL.vector)
+
+# for replete
+supra_rep <- filter(supraRL.vector, supraRL_FC > 0 )
+dim(supra_rep)
+
+# for limited
+supra_lim <- filter(supraRL.vector, supraRL_FC < 0 )
+dim(supra_lim)
+
+# need to run clusterprofilers on these dataframes
+head(sub_rep)
+head(sub_lim)
+head(opt_rep)
+head(opt_lim)
+head(supra_rep)
+head(supra_lim)
+```
+
+# cluster profiler 
+```{r RL_input_temp, eval = TRUE, message = FALSE, warning = FALSE}
+
+setwd("/Users/kylakelly/Documents/USC/research/seq/tricho/cluster_profiler/temp")
+
+## Sub rep
+
+# BP
+df <- sub_rep
+head(df)
+df_ids <- df$gene_id
+enrich <- enricher(df_ids, TERM2GENE = go2gene_BP, TERM2NAME = go2name_BP, minGSSize = 5)
+enrich
+write.csv(enrich, file="sub_L_down_BP.csv", row.names = TRUE) # enricher results
+
+# MF
+enrich <- enricher(df_ids, TERM2GENE = go2gene_MF, TERM2NAME = go2name_MF, minGSSize = 5)
+enrich
+write.csv(enrich, file="sub_L_down_MF.csv", row.names = TRUE) # enricher results
+
+# CC
+enrich <- enricher(df_ids, TERM2GENE = go2gene_CC, TERM2NAME = go2name_CC, minGSSize = 5)
+enrich
+write.csv(enrich, file="sub_L_down_CC.csv", row.names = TRUE) # enricher results
+
+# KO
+enrich <- enrichKEGG(gene = df_ids, organism = "ko", universe = bg_KO, minGSSize = 5)
+enrich
+write.csv(enrich, file="sub_L_down_KO.csv", row.names = TRUE) # enricher results
+
+## sub lim 
+
+# BP
+enrich <- enricher(df_ids, TERM2GENE = go2gene_BP, TERM2NAME = go2name_BP, minGSSize = 5)
+enrich
+write.csv(enrich, file="sub_L_up_BP.csv", row.names = TRUE) # enricher results
+
+# MF
+enrich <- enricher(df_ids, TERM2GENE = go2gene_MF, TERM2NAME = go2name_MF, minGSSize = 5)
+enrich
+write.csv(enrich, file="sub_L_up_MF.csv", row.names = TRUE) # enricher results
+
+# CC
+enrich <- enricher(df_ids, TERM2GENE = go2gene_CC, TERM2NAME = go2name_CC, minGSSize = 5)
+enrich
+write.csv(enrich, file="sub_L_up_CC.csv", row.names = TRUE) # enricher results
+
+# KO
+enrich <- enrichKEGG(gene = df_ids, organism = "ko", universe = bg_KO, minGSSize = 5)
+enrich
+write.csv(enrich, file="sub_L_up_KO.csv", row.names = TRUE) # enricher results
+
+## opt rep
+
+# BP
+enrich <- enricher(df_ids, TERM2GENE = go2gene_BP, TERM2NAME = go2name_BP, minGSSize = 5)
+enrich
+write.csv(enrich, file="opt_L_down_BP.csv", row.names = TRUE) # enricher results
+
+# MF
+enrich <- enricher(df_ids, TERM2GENE = go2gene_MF, TERM2NAME = go2name_MF, minGSSize = 5)
+enrich
+write.csv(enrich, file="opt_L_down_MF.csv", row.names = TRUE) # enricher results
+
+# CC
+enrich <- enricher(df_ids, TERM2GENE = go2gene_CC, TERM2NAME = go2name_CC, minGSSize = 5)
+enrich
+write.csv(enrich, file="opt_L_down_CC.csv", row.names = TRUE) # enricher results
+
+# KO
+enrich <- enrichKEGG(gene = df_ids, organism = "ko", universe = bg_KO, minGSSize = 5)
+enrich
+write.csv(enrich, file="opt_L_down_KO.csv", row.names = TRUE) # enricher results
+
+## opt lim 
+
+# BP
+enrich <- enricher(df_ids, TERM2GENE = go2gene_BP, TERM2NAME = go2name_BP, minGSSize = 5)
+enrich
+write.csv(enrich, file="opt_L_up_BP.csv", row.names = TRUE) # enricher results
+
+# MF
+enrich <- enricher(df_ids, TERM2GENE = go2gene_MF, TERM2NAME = go2name_MF, minGSSize = 5)
+enrich
+write.csv(enrich, file="opt_L_up_MF.csv", row.names = TRUE) # enricher results
+
+# CC
+enrich <- enricher(df_ids, TERM2GENE = go2gene_CC, TERM2NAME = go2name_CC, minGSSize = 5)
+enrich
+write.csv(enrich, file="opt_L_up_CC.csv", row.names = TRUE) # enricher results
+
+# KO
+enrich <- enrichKEGG(gene = df_ids, organism = "ko", universe = bg_KO, minGSSize = 5)
+enrich
+write.csv(enrich, file="opt_L_up_KO.csv", row.names = TRUE) # enricher results
+
+## supra rep
+
+# BP
+enrich <- enricher(df_ids, TERM2GENE = go2gene_BP, TERM2NAME = go2name_BP, minGSSize = 5)
+enrich
+write.csv(enrich, file="supra_L_down_BP.csv", row.names = TRUE) # enricher results
+
+# MF
+enrich <- enricher(df_ids, TERM2GENE = go2gene_MF, TERM2NAME = go2name_MF, minGSSize = 5)
+enrich
+write.csv(enrich, file="supra_L_down_MF.csv", row.names = TRUE) # enricher results
+
+# CC
+enrich <- enricher(df_ids, TERM2GENE = go2gene_CC, TERM2NAME = go2name_CC, minGSSize = 5)
+enrich
+write.csv(enrich, file="supra_L_down_CC.csv", row.names = TRUE) # enricher results
+
+# KO
+enrich <- enrichKEGG(gene = df_ids, organism = "ko", universe = bg_KO, minGSSize = 5)
+enrich
+write.csv(enrich, file="supra_L_down_KO.csv", row.names = TRUE) # enricher results
+
+## supra lim 
+
+# BP
+enrich <- enricher(df_ids, TERM2GENE = go2gene_BP, TERM2NAME = go2name_BP, minGSSize = 5)
+enrich
+write.csv(enrich, file="supra_L_up_BP.csv", row.names = TRUE) # enricher results
+
+# MF
+enrich <- enricher(df_ids, TERM2GENE = go2gene_MF, TERM2NAME = go2name_MF, minGSSize = 5)
+enrich
+write.csv(enrich, file="supra_L_up_MF.csv", row.names = TRUE) # enricher results
+
+# CC
+enrich <- enricher(df_ids, TERM2GENE = go2gene_CC, TERM2NAME = go2name_CC, minGSSize = 5)
+enrich
+write.csv(enrich, file="supra_L_up_CC.csv", row.names = TRUE) # enricher results
+
+# KO
+enrich <- enrichKEGG(gene = df_ids, organism = "ko", universe = bg_KO, minGSSize = 5)
+enrich
+write.csv(enrich, file="supra_L_up_KO.csv", row.names = TRUE) # enricher results
+```
+
+
+### Temperatures (23 v 27, 27 v 32)
+```{r day_temp, eval = TRUE, message = FALSE, warning = FALSE}
+
+setwd("/Users/kylakelly/Documents/USC/research/seq/tricho/deseq2/replete")
+
+cts <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/deseq2/tricho_trimmed_forDESeq2.csv")
+head(cts) 
+
+# previously I didn't need this because I added it manually. But I had to remake these files so I didn't add it manually this time 
+gene_id <- cts[c(1:2)] # extract gene_id to add to the other dataframes because this number was left off. The numeric ordering of these files is the same as the input file which has gene_id as well.
+head(gene_id)
+
+# set up replete day dataframes
+setwd("/Users/kylakelly/Documents/USC/research/seq/tricho/deseq2/replete")
+
+sub <- read_csv("R22.R27_DESeqresults.csv")
+head(sub)
+
+opt <- read_csv("R27.R32_DESeqresults.csv")
+head(opt)
+
+supra <- read_csv("R22.R32_DESeqresults.csv")
+head(supra)
+
+# sub 
+sub_df <- cbind(gene_id, sub) # append gene_ids
+summary(sub_df)
+head(sub_df)
+subR <- dplyr::select(sub_df, gene_id, log2FoldChange, padj) # select relevant columns
+head(subR)
+dim(subR)
+subR.vector <- dplyr::filter(subR, padj < 0.05) 
+head(subR.vector)
+subR.vector <- select(subR.vector, gene_id, log2FoldChange) #remove padj column
+dim(subR.vector)
+head(subR.vector)
+names(subR.vector)[2] <- "subR_FC"
+head(subR.vector)
+subR.vector.up <- dplyr::filter(subR.vector, subR_FC > 0) 
+subR.vector.down <- dplyr::filter(subR.vector, subR_FC < 0) 
+
+write.csv(subR.vector.up, file="/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/vectors/R22vR27_up_vector.csv", row.names = TRUE) # for clusterProfiler
+
+write.csv(subR.vector.down, file="/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/vectors/R22vR27_down_vector.csv", row.names = TRUE) # for clusterProfiler
+
+# opt 
+opt_df <- cbind(gene_id, opt) # append gene_ids
+summary(opt_df)
+head(opt_df)
+optR <- dplyr::select(opt_df, gene_id, log2FoldChange, padj) # select relevant columns
+head(optR)
+dim(optR)
+optR.vector <- dplyr::filter(optR, padj < 0.05) # all the differentially expressed opt RL genes 
+head(optR.vector)
+optR.vector <- select(optR.vector, gene_id, log2FoldChange) #remove padj column
+dim(optR.vector)
+head(optR.vector)
+names(optR.vector)[2] <- "optR_FC"
+head(optR.vector)
+optR.vector.up <- dplyr::filter(optR.vector, optR_FC > 0) 
+optR.vector.down <- dplyr::filter(optR.vector, optR_FC < 0) 
+
+write.csv(optR.vector.up, file="/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/vectors/R27vR32_up_vector.csv", row.names = TRUE) # for clusterProfiler
+
+write.csv(optR.vector.down, file="/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/vectors/R27vR32_down_vector.csv", row.names = TRUE) # for clusterProfiler
+
+# supra 
+supra_df <- cbind(gene_id, supra) # append gene_ids
+summary(supra_df)
+head(supra_df)
+supraR <- dplyr::select(supra_df, gene_id, log2FoldChange, padj) # select relevant columns
+head(supraR)
+dim(supraR)
+supraR.vector <- dplyr::filter(supraR, padj < 0.05)
+head(supraR.vector)
+supraR.vector <- select(supraR.vector, gene_id, log2FoldChange) #remove padj column
+dim(supraR.vector)
+head(supraR.vector)
+names(supraR.vector)[2] <- "supraR_FC"
+head(supraR.vector)
+supraR.vector.up <- dplyr::filter(supraR.vector, supraR_FC > 0)
+supraR.vector.down <- dplyr::filter(supraR.vector, supraR_FC < 0)
+
+write.csv(supraR.vector.up, file="/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/vectors/R22vR32_up_vector.csv", row.names = TRUE) # for clusterProfiler
+
+write.csv(supraR.vector.down, file="/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/vectors/R22vR32_down_vector.csv", row.names = TRUE) # for clusterProfiler
+
+# set up limited day
+setwd("/Users/kylakelly/Documents/USC/research/seq/tricho/deseq2/limited")
+
+sub <- read_csv("L22.L27_DESeqresults.csv")
+head(sub)
+
+opt <- read_csv("L27.L32_DESeqresults.csv")
+head(opt)
+
+supra <- read_csv("L22.L32_DESeqresults.csv")
+head(supra)
+
+# sub 
+sub_df <- cbind(gene_id, sub) # append gene_ids
+summary(sub_df)
+head(sub_df)
+subL <- dplyr::select(sub_df, gene_id, log2FoldChange, padj) # select relevant columns
+head(subL)
+dim(subL)
+subL.vector <- dplyr::filter(subL, padj < 0.05)
+head(subL.vector)
+subL.vector <- select(subL.vector, gene_id, log2FoldChange) #remove padj column
+dim(subL.vector)
+head(subL.vector)
+names(subL.vector)[2] <- "subL_FC"
+head(subL.vector)
+subL.vector.up <- dplyr::filter(subL.vector, subL_FC > 0)
+subL.vector.down <- dplyr::filter(subL.vector, subL_FC < 0)
+
+write.csv(subL.vector.up, file="/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/vectors/L22vL27_up_vector.csv", row.names = TRUE) # for clusterProfiler
+
+write.csv(subL.vector.down, file="/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/vectors/L22vL27_down_vector.csv", row.names = TRUE) # for clusterProfiler
+
+# opt 
+opt_df <- cbind(gene_id, opt) # append gene_ids
+summary(opt_df)
+head(opt_df)
+optL <- dplyr::select(opt_df, gene_id, log2FoldChange, padj) # select relevant columns
+head(optL)
+dim(optL)
+optL.vector <- dplyr::filter(optL, padj < 0.05) # all the differentially expressed opt RL genes 
+head(optL.vector)
+optL.vector <- select(optL.vector, gene_id, log2FoldChange) #remove padj column
+dim(optL.vector)
+head(optL.vector)
+names(optL.vector)[2] <- "optL_FC"
+head(optL.vector)
+optL.vector.up <- dplyr::filter(optL.vector, optL_FC > 0)  
+optL.vector.down <- dplyr::filter(optL.vector, optL_FC < 0) 
+
+write.csv(optL.vector.up, file="/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/vectors/L27vL32_up_vector.csv", row.names = TRUE) # for clusterProfiler
+
+write.csv(optL.vector.down, file="/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/vectors/L27vL32_down_vector.csv", row.names = TRUE) # for clusterProfiler
+
+# supra 
+supra_df <- cbind(gene_id, supra) # append gene_ids
+summary(supra_df)
+head(supra_df)
+supraL <- dplyr::select(supra_df, gene_id, log2FoldChange, padj) # select relevant columns
+head(supraL)
+dim(supraL)
+supraL.vector <- dplyr::filter(supraL, padj < 0.05) # all the differentially expressed supra RL genes 
+head(supraL.vector)
+supraL.vector <- select(supraL.vector, gene_id, log2FoldChange) #remove padj column
+dim(supraL.vector)
+head(supraL.vector)
+names(supraL.vector)[2] <- "supraL_FC"
+head(supraL.vector)
+supraL.vector.up <- dplyr::filter(supraL.vector, supraL_FC > 0)
+supraL.vector.down <- dplyr::filter(supraL.vector, supraL_FC < 0) 
+
+write.csv(supraL.vector.up, file="/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/vectors/L22vL32_up_vector.csv", row.names = TRUE) # for clusterProfiler
+
+write.csv(supraL.vector.down, file="/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/vectors/L22vL32_down_vector.csv", row.names = TRUE) # for clusterProfiler
+```
+
+# cluster profiler for temp v temp within each nutrient treatment 
+```{r 23RDv27RD_clusterProfiler, eval = TRUE, message = FALSE, warning = FALSE}
+
+setwd("/Users/kylakelly/Documents/USC/research/seq/tricho/cluster_profiler/vOpt")
+
+#### cluster profiler replete 22 v 27
+# 23R vs 27R
+
+## UP
+df <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/vectors/R22vR27_up_vector.csv")
+head(df)
+df_ids <- df$gene_id
+
+# BP
+enrich <- enricher(df_ids, TERM2GENE = go2gene_BP, TERM2NAME = go2name_BP, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="R22vR27_up_BP.csv", row.names = TRUE) # enricher results
+
+# MF
+enrich <- enricher(df_ids, TERM2GENE = go2gene_MF, TERM2NAME = go2name_MF, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="R22vR27_up_MF.csv", row.names = TRUE) # enricher results
+
+# CC
+enrich <- enricher(df_ids, TERM2GENE = go2gene_CC, TERM2NAME = go2name_CC, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="R22vR27_up_CC.csv", row.names = TRUE) # enricher results
+
+# KO
+enrich <- enrichKEGG(gene = df_ids, organism = "ko", universe = bg_KO, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="R22vR27_up_KO.csv", row.names = TRUE) # enricher results
+
+## DOWN
+df <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/vectors/R22vR27_down_vector.csv")
+head(df)
+df_ids <- df$gene_id
+
+# BP
+enrich <- enricher(df_ids, TERM2GENE = go2gene_BP, TERM2NAME = go2name_BP, minGSSize = 5)
+enrich
+write.csv(enrich, file="R22vR27_down_BP.csv", row.names = TRUE) # enricher results
+
+# MF
+enrich <- enricher(df_ids, TERM2GENE = go2gene_MF, TERM2NAME = go2name_MF, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="R22vR27_down_MF.csv", row.names = TRUE) # enricher results
+
+# CC
+enrich <- enricher(df_ids, TERM2GENE = go2gene_CC, TERM2NAME = go2name_CC, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="R22vR27_down_CC.csv", row.names = TRUE) # enricher results
+
+# KO
+enrich <- enrichKEGG(gene = df_ids, organism = "ko", universe = bg_KO, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="R22vR27_down_KO.csv", row.names = TRUE) # enricher results
+
+
+#### cluster profiler 27 v 32 replete
+# 27R vs 32R
+
+## UP
+df <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/vectors/R27vR32_up_vector.csv")
+head(df)
+df_ids <- df$gene_id
+
+# BP
+enrich <- enricher(df_ids, TERM2GENE = go2gene_BP, TERM2NAME = go2name_BP, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="R27vR32_up_BP.csv", row.names = TRUE) # enricher results
+
+# MF
+enrich <- enricher(df_ids, TERM2GENE = go2gene_MF, TERM2NAME = go2name_MF, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="R27vR32_up_MF.csv", row.names = TRUE) # enricher results
+
+# CC
+enrich <- enricher(df_ids, TERM2GENE = go2gene_CC, TERM2NAME = go2name_CC, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="R27vR32_up_CC.csv", row.names = TRUE) # enricher results
+
+# KO
+enrich <- enrichKEGG(gene = df_ids, organism = "ko", universe = bg_KO, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="R27vR32_up_KO.csv", row.names = TRUE) # enricher results
+
+## DOWN 
+df <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/vectors/R27vR32_down_vector.csv")
+head(df)
+df_ids <- df$gene_id
+
+# BP
+enrich <- enricher(df_ids, TERM2GENE = go2gene_BP, TERM2NAME = go2name_BP, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="R27vR32_down_BP.csv", row.names = TRUE) # enricher results
+
+# MF
+enrich <- enricher(df_ids, TERM2GENE = go2gene_MF, TERM2NAME = go2name_MF, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="R27vR32_down_MF.csv", row.names = TRUE) # enricher results
+
+# CC
+enrich <- enricher(df_ids, TERM2GENE = go2gene_CC, TERM2NAME = go2name_CC, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="R27vR32_down_CC.csv", row.names = TRUE) # enricher results
+
+# KO
+enrich <- enrichKEGG(gene = df_ids, organism = "ko", universe = bg_KO, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="R27vR32_down_KO.csv", row.names = TRUE) # enricher results
+
+
+
+#### cluster profiler 22 v 27 limited
+# 23L vs 27L
+
+## UP
+df <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/vectors/L22vL27_up_vector.csv")
+head(df)
+df_ids <- df$gene_id
+
+# BP
+enrich <- enricher(df_ids, TERM2GENE = go2gene_BP, TERM2NAME = go2name_BP, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="L22vL27_up_BP.csv", row.names = TRUE) # enricher results
+
+# MF
+enrich <- enricher(df_ids, TERM2GENE = go2gene_MF, TERM2NAME = go2name_MF, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="L22vL27_up_MF.csv", row.names = TRUE) # enricher results
+
+# CC
+enrich <- enricher(df_ids, TERM2GENE = go2gene_MF, TERM2NAME = go2name_MF, minGSSize = 5)
+enrich
+write.csv(enrich, file="L22vL27_up_CC.csv", row.names = TRUE) # enricher results
+
+# KO
+enrich <- enrichKEGG(gene = df_ids, organism = "ko", universe = bg_KO, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="L22vL27_up_KO.csv", row.names = TRUE) # enricher results
+
+## DOWN
+
+df <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/vectors/L22vL27_down_vector.csv")
+head(df)
+df_ids <- df$gene_id
+
+# BP
+enrich <- enricher(df_ids, TERM2GENE = go2gene_BP, TERM2NAME = go2name_BP, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="L22vL27_down_BP.csv", row.names = TRUE) # enricher results
+
+# MF
+enrich <- enricher(df_ids, TERM2GENE = go2gene_MF, TERM2NAME = go2name_MF, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="L22vL27_down_MF.csv", row.names = TRUE) # enricher results
+
+# CC
+enrich <- enricher(df_ids, TERM2GENE = go2gene_CC, TERM2NAME = go2name_CC, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="L22vL27_down_CC.csv", row.names = TRUE) # enricher results
+
+# KO
+enrich <- enrichKEGG(gene = df_ids, organism = "ko", universe = bg_KO, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="L22vL27_down_KO.csv", row.names = TRUE) # enricher results
+
+#### Cluster profiler 27 v 32 limited 
+
+# 27L v 32L
+
+## UP
+df <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/vectors/L27vL32_up_vector.csv")
+head(df)
+df_ids <- df$gene_id
+
+# BP
+enrich <- enricher(df_ids, TERM2GENE = go2gene_BP, TERM2NAME = go2name_BP, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="L27vL32_up_BP.csv", row.names = TRUE) # enricher results
+
+# MF
+enrich <- enricher(df_ids, TERM2GENE = go2gene_MF, TERM2NAME = go2name_MF, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="L27vL32_up_MF.csv", row.names = TRUE) # enricher results
+
+# CC
+enrich <- enricher(df_ids, TERM2GENE = go2gene_CC, TERM2NAME = go2name_CC, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="L27vL32_up_CC.csv", row.names = TRUE) # enricher results
+
+# KO
+enrich <- enrichKEGG(gene = df_ids, organism = "ko", universe = bg_KO, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="L27vL32_up_KO.csv", row.names = TRUE) # enricher results
+
+
+## DOWN
+df <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/vectors/L27vL32_down_vector.csv")
+head(df)
+df_ids <- df$gene_id
+
+# BP
+enrich <- enricher(df_ids, TERM2GENE = go2gene_BP, TERM2NAME = go2name_BP, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="L27vL32_down_BP.csv", row.names = TRUE) # enricher results
+
+# MF
+enrich <- enricher(df_ids, TERM2GENE = go2gene_MF, TERM2NAME = go2name_MF, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="L27vL32_down_MF.csv", row.names = TRUE) # enricher results
+
+# CC
+enrich <- enricher(df_ids, TERM2GENE = go2gene_CC, TERM2NAME = go2name_CC, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="L27vL32_down_CC.csv", row.names = TRUE) # enricher results
+
+# KO
+enrich <- enrichKEGG(gene = df_ids, organism = "ko", universe = bg_KO, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="L27vL32_down_KO.csv", row.names = TRUE) # enricher results
+```
+
+
+# venn diagrams replete 
+```{r R_venn, eval = TRUE, message = FALSE, warning = FALSE}
+
+setwd("/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/vOpt")
+
+# set up replete day dataframes
+sub <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/deseq2/replete/R22.R27_DESeqresults.csv")
+head(sub)
+supra <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/deseq2/replete/R27.R32_DESeqresults.csv")
+head(supra)
+
+# sub 
+sub_df <- cbind(gene_id, sub) # append gene_ids
+summary(sub_df)
+head(sub_df)
+subR <- dplyr::select(sub_df, gene_id, log2FoldChange, padj) # select relevant columns
+head(subR)
+dim(subR)
+subR.vector <- dplyr::filter(subR, padj < 0.05) 
+head(subR.vector)
+subR.vector <- select(subR.vector, gene_id, log2FoldChange) #remove padj column
+dim(subR.vector)
+head(subR.vector)
+names(subR.vector)[2] <- "subR_FC"
+head(subR.vector)
+
+# supra
+supra_df <- cbind(gene_id, supra) # append gene_ids
+summary(supra_df)
+head(supra_df)
+supraR <- dplyr::select(supra_df, gene_id, log2FoldChange, padj) # select relevant columns
+head(supraR)
+dim(supraR)
+supraR.vector <- dplyr::filter(supraR, padj < 0.05) # all the differentially expressed supra RL genes 
+head(supraR.vector)
+supraR.vector <- select(supraR.vector, gene_id, log2FoldChange) #remove padj column
+dim(supraR.vector)
+head(supraR.vector)
+names(supraR.vector)[2] <- "supraR_FC"
+head(supraR.vector)
+
+# start with the list of all relevant genes (the full list of deduped and trimmed list of genes)
+R.vector <- left_join(gene_id, subR.vector, by = "gene_id")
+dim(R.vector)
+head(R.vector)
+R.vector <- left_join(R.vector, supraR.vector, by = "gene_id")
+head(R.vector)
+dim(R.vector)
+head(R.vector, 10)
+tail(R.vector, 10)
+dim(R.vector)
+
+# build Venn Diagram input
+venn_df <- R.vector %>%
+  gather(key = exp_type, value = foldchange, -c(gene_id))
+glimpse(venn_df)
+
+## this is for positive fold change (upregulate for 23 relative to 27)
+pos_venn_sub <- venn_df %>% 
+  filter(exp_type == "subR_FC" & !is.na(foldchange) & foldchange > 0) %>% 
+  pull(gene_id)
+
+## this is for positive fold change (upregulate for 32 relative to 27)
+pos_venn_supra <- venn_df %>% 
+  filter(exp_type == "supraR_FC" & !is.na(foldchange) & foldchange < 0) %>% 
+  pull(gene_id)
+
+## this is for negative fold change (downregulate 23 relative to 27)
+neg_venn_sub <- venn_df %>% 
+  filter(exp_type == "subR_FC" & !is.na(foldchange) & foldchange < 0) %>% 
+  pull(gene_id)
+
+## this is for negative fold change (downregulate for 32 relative to 27)
+neg_venn_supra <- venn_df %>% 
+  filter(exp_type == "supraR_FC" & !is.na(foldchange) & foldchange > 0) %>% 
+  pull(gene_id)
+summary(pos_venn_sub)
+summary(pos_venn_supra)
+summary(neg_venn_sub)
+summary(neg_venn_supra)
+venn_list_pos <- list("22C" = pos_venn_sub,
+                      "32C" = pos_venn_supra)
+venn_list_neg <- list("22C" = neg_venn_sub,
+                      "32C" = neg_venn_supra)
+venn <- venn.diagram(venn_list_pos, NULL,
+                          col = "transparent",
+                          fill = c("#350498", "#FBA139"),
+                          alpha = 0.50,
+                          cex = 0.8,
+                          fontfamily = "sans",
+                          fontface = "bold",
+                          cat.col = c("#350498", "#FBA139"),
+                          cat.cex = 0.8,
+                          cat.fontfamily = "sans",
+                          margin = 0.2,
+                          main.fontfamily = "sans",
+                          print.mode = c("raw","percent"), # Show both numbers and percent
+                          main.pos = c(0.5,0.9))
+grid.draw(venn)
+pdf(file = "/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/vOpt/VD_R_up_v27.pdf")
+grid.draw(venn)
+dev.off()
+
+## extract the overlap analysis so you have the list of genes that are in each section of the venn diagram
+list <- calculate.overlap(venn_list_pos)
+summary(list)
+
+# core genes
+write.csv(list$a3,"VD_R_upregulated_core.csv", row.names = TRUE)
+
+core <- read_csv("VD_R_upregulated_core.csv")
+summary(core) # should have 158; the "core" genes are included in this count
+head(core)
+
+# 22 vs 27 genes
+write.csv(list$a1,"VD_R_upregulated_22v27.csv", row.names = TRUE)
+
+sub <- read_csv("VD_R_upregulated_22v27.csv")
+head(sub)
+summary(sub)
+head(core)
+sub_df <- left_join(sub, core, by = "x")
+sub_df
+summary(sub_df)
+head(sub_df)
+sub_df <- sub_df[is.na(sub_df$...1.y),]
+head(sub_df)
+summary(sub_df)
+
+write.csv(sub_df$x,"VD_R_upregulated_22v27_deduped.csv", row.names = TRUE)
+
+# 32 vs 27 genes
+write.csv(list$a2,"VD_R_upregulated_32v27.csv", row.names = TRUE)
+
+supra <- read_csv("VD_R_upregulated_32v27.csv")
+head(supra)
+summary(supra)
+head(core)
+supra_df <- left_join(supra, core, by = "x")
+supra_df
+summary(supra_df)
+head(supra_df)
+supra_df <- supra_df[is.na(supra_df$...1.y),]
+head(supra_df)
+summary(supra_df)
+
+write.csv(supra_df$x,"VD_R_upregulated_32v27_deduped.csv", row.names = TRUE)
+
+# Downregulated R DEG Venn Diagrams - build Venn Diagram and extract gene lists
+venn <- venn.diagram(venn_list_neg, NULL,
+                          col = "transparent",
+                          fill = c("#350498", "#FBA139"),
+                          alpha = 0.50,
+                          cex = 0.8,
+                          fontfamily = "sans",
+                          fontface = "bold",
+                          cat.col = c("#350498", "#FBA139"),
+                          cat.cex = 0.8,
+                          cat.fontfamily = "sans",
+                          margin = 0.2,
+                          main.fontfamily = "sans",
+                          print.mode = c("raw","percent"), # Show both numbers and percent
+                          main.pos = c(0.5,0.9))
+grid.draw(venn)
+pdf(file = "VD_R_down_v27.pdf")
+grid.draw(venn)
+dev.off()
+
+## extract the overlap analysis so you have the list of genes that are in each section of the venn diagram
+list <- calculate.overlap(venn_list_neg)
+summary(list)
+
+# core genes shared across day treatments
+write.csv(list$a3,"VD_R_downregulated_core.csv", row.names = TRUE)
+
+core <- read_csv("VD_R_downregulated_core.csv")
+summary(core) # should have 436; the "core" genes are included in this count
+head(core)
+
+# 22 vs 27 genes
+write.csv(list$a1,"VD_R_downregulated_22v27.csv", row.names = TRUE)
+
+sub <- read_csv("VD_R_downregulated_22v27.csv")
+head(sub)
+summary(sub)
+head(core)
+sub_df <- left_join(sub, core, by = "x")
+sub_df
+summary(sub_df)
+head(sub_df)
+sub_df <- sub_df[is.na(sub_df$...1.y),]
+head(sub_df)
+summary(sub_df)
+
+write.csv(sub_df$x,"VD_R_downregulated_22v27_deduped.csv", row.names = TRUE)
+
+# 32 vs 27 genes
+write.csv(list$a2,"VD_R_downregulated_32v27.csv", row.names = TRUE)
+
+supra <- read_csv("VD_R_downregulated_32v27.csv")
+head(supra)
+summary(supra)
+head(core)
+supra_df <- left_join(supra, core, by = "x")
+supra_df
+summary(supra_df)
+head(supra_df)
+supra_df <- supra_df[is.na(supra_df$...1.y),]
+head(supra_df)
+summary(supra_df)
+
+write.csv(supra_df$x,"VD_R_downregulated_32v27_deduped.csv", row.names = TRUE)
+```
+
+# I thought I already did this??
+#cluster profiler replete 
+```{r R_clusterProfiler, eval = TRUE, message = FALSE, warning = FALSE}
+
+setwd("/Users/kylakelly/Documents/USC/research/seq/tricho/cluster_profiler/vOpt")
+
+# Core
+
+df <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/vOpt/VD_R_upregulated_core.csv")
+head(df)
+df_ids <- df$x
+
+# BP
+enrich <- enricher(df_ids, TERM2GENE = go2gene_BP, TERM2NAME = go2name_BP, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="R_upregulated_core_BP.csv", row.names = TRUE) # enricher results
+
+# MF
+enrich <- enricher(df_ids, TERM2GENE = go2gene_MF, TERM2NAME = go2name_MF, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="R_upregulated_core_MF.csv", row.names = TRUE) # enricher results
+
+# CC
+enrich <- enricher(df_ids, TERM2GENE = go2gene_CC, TERM2NAME = go2name_CC, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="R_upregulated_core_CC.csv", row.names = TRUE) # enricher results
+
+# KO
+enrich <- enrichKEGG(gene = df_ids, organism = "ko", universe = bg_KO, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="R_upregulated_core_KO.csv", row.names = TRUE) # enricher results
+
+# 22 unique 
+
+df <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/vOpt/VD_R_upregulated_22v27.csv")
+head(df)
+df_ids <- df$x
+
+# BP
+enrich <- enricher(df_ids, TERM2GENE = go2gene_BP, TERM2NAME = go2name_BP, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="R_upregulated_22_BP.csv", row.names = TRUE) # enricher results
+
+# MF
+enrich <- enricher(df_ids, TERM2GENE = go2gene_MF, TERM2NAME = go2name_MF, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="R_upregulated_22_MF.csv", row.names = TRUE) # enricher results
+
+# CC
+enrich <- enricher(df_ids, TERM2GENE = go2gene_CC, TERM2NAME = go2name_CC, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="R_upregulated_22_CC.csv", row.names = TRUE) # enricher results
+
+# KO
+enrich <- enrichKEGG(gene = df_ids, organism = "ko", universe = bg_KO, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="R_upregulated_22_KO.csv", row.names = TRUE) # enricher results
+
+# 32 unique
+df <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/vOpt/VD_R_upregulated_32v27.csv")
+head(df)
+df_ids <- df$x
+
+# BP
+enrich <- enricher(df_ids, TERM2GENE = go2gene_BP, TERM2NAME = go2name_BP, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="R_upregulated_32_BP.csv", row.names = TRUE) # enricher results
+
+# MF
+enrich <- enricher(df_ids, TERM2GENE = go2gene_MF, TERM2NAME = go2name_MF, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="R_upregulated_32_MF.csv", row.names = TRUE) # enricher results
+
+# CC
+enrich <- enricher(df_ids, TERM2GENE = go2gene_CC, TERM2NAME = go2name_CC, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="R_upregulated_32_CC.csv", row.names = TRUE) # enricher results
+
+# KO
+enrich <- enrichKEGG(gene = df_ids, organism = "ko", universe = bg_KO, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="R_upregulated_32_KO.csv", row.names = TRUE) # enricher results
+
+# 22R v 27R down
+
+# Core
+df <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/vOpt/VD_R_downregulated_core.csv")
+head(df)
+df_ids <- df$x
+
+# BP
+enrich <- enricher(df_ids, TERM2GENE = go2gene_BP, TERM2NAME = go2name_BP, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="R_downregulated_core_BP.csv", row.names = TRUE) # enricher results
+
+# MF
+enrich <- enricher(df_ids, TERM2GENE = go2gene_MF, TERM2NAME = go2name_MF, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="R_downregulated_core_MF.csv", row.names = TRUE) # enricher results
+
+# CC
+enrich <- enricher(df_ids, TERM2GENE = go2gene_CC, TERM2NAME = go2name_CC, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="R_downregulated_core_CC.csv", row.names = TRUE) # enricher results
+
+# KO
+enrich <- enrichKEGG(gene = df_ids, organism = "ko", universe = bg_KO, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="R_downregulated_core_KO.csv", row.names = TRUE) # enricher results
+
+# 23 unique 
+df <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/vOpt/VD_R_downregulated_22v27.csv")
+head(df)
+df_ids <- df$x
+
+# BP
+enrich <- enricher(df_ids, TERM2GENE = go2gene_BP, TERM2NAME = go2name_BP, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="R_downregulated_22_BP.csv", row.names = TRUE) # enricher results
+
+# MF
+enrich <- enricher(df_ids, TERM2GENE = go2gene_MF, TERM2NAME = go2name_MF, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="R_downregulated_22_MF.csv", row.names = TRUE) # enricher results
+
+# CC
+
+enrich <- enricher(df_ids, TERM2GENE = go2gene_CC, TERM2NAME = go2name_CC, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="R_downregulated_22_CC.csv", row.names = TRUE) # enricher results
+
+# KO
+enrich <- enrichKEGG(gene = df_ids, organism = "ko", universe = bg_KO, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="R_downregulated_22_KO.csv", row.names = TRUE) # enricher results
+
+# 32 unique
+df <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/vOpt/VD_R_downregulated_32v27.csv")
+head(df)
+df_ids <- df$x
+
+# BP
+enrich <- enricher(df_ids, TERM2GENE = go2gene_BP, TERM2NAME = go2name_BP, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="R_downregulated_32_BP.csv", row.names = TRUE) # enricher results
+
+# MF
+enrich <- enricher(df_ids, TERM2GENE = go2gene_MF, TERM2NAME = go2name_MF, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="R_downregulated_32_MF.csv", row.names = TRUE) # enricher results
+
+# CC
+enrich <- enricher(df_ids, TERM2GENE = go2gene_CC, TERM2NAME = go2name_CC, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="R_downregulated_32_CC.csv", row.names = TRUE) # enricher results
+
+# KO
+enrich <- enrichKEGG(gene = df_ids, organism = "ko", universe = bg_KO, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="R_downregulated_32_KO.csv", row.names = TRUE) # enricher results
+```
+
+# venn diagram limited 
+```{r L_venn, eval = TRUE, message = FALSE, warning = FALSE}
+
+
+setwd("/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/vOpt")
+
+# set up replete day dataframes
+sub <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/deseq2/limited/L22.L27_DESeqresults.csv")
+head(sub)
+
+supra <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/deseq2/limited/L27.L32_DESeqresults.csv")
+head(supra)
+
+# sub 
+sub_df <- cbind(gene_id, sub) # append gene_ids
+summary(sub_df)
+head(sub_df)
+subL <- dplyr::select(sub_df, gene_id, log2FoldChange, padj) # select relevant columns
+head(subL)
+dim(subL)
+subL.vector <- dplyr::filter(subL, padj < 0.05) 
+head(subL.vector)
+subL.vector <- select(subL.vector, gene_id, log2FoldChange) #remove padj column
+dim(subL.vector)
+head(subL.vector)
+names(subL.vector)[2] <- "subL_FC"
+head(subL.vector)
+
+# supra
+supra_df <- cbind(gene_id, supra) # append gene_ids
+summary(supra_df)
+head(supra_df)
+supraL <- dplyr::select(supra_df, gene_id, log2FoldChange, padj) # select relevant columns
+head(supraL)
+dim(supraL)
+supraL.vector <- dplyr::filter(supraL, padj < 0.05) # all the differentially expressed supra LL genes 
+head(supraL.vector)
+supraL.vector <- select(supraL.vector, gene_id, log2FoldChange) #remove padj column
+dim(supraL.vector)
+head(supraL.vector)
+names(supraL.vector)[2] <- "supraL_FC"
+head(supraL.vector)
+
+# start with the list of all relevant genes (the full list of deduped and trimmed list of genes)
+L.vector <- left_join(gene_id, subL.vector, by = "gene_id")
+dim(L.vector)
+head(L.vector)
+L.vector <- left_join(L.vector, supraL.vector, by = "gene_id")
+head(L.vector)
+dim(L.vector)
+head(L.vector, 10)
+tail(L.vector, 10)
+dim(L.vector)
+
+# build Venn Diagram input
+venn_df <- L.vector %>%
+  gather(key = exp_type, value = foldchange, -c(gene_id))
+glimpse(venn_df)
+
+## this is for positive fold change (upregulate for 22 relative to 27)
+pos_venn_sub <- venn_df %>% 
+  filter(exp_type == "subL_FC" & !is.na(foldchange) & foldchange > 0) %>% 
+  pull(gene_id)
+
+## this is for positive fold change (upregulate for 32 relative to 27)
+pos_venn_supra <- venn_df %>% 
+  filter(exp_type == "supraL_FC" & !is.na(foldchange) & foldchange < 0) %>% 
+  pull(gene_id)
+
+## this is for negative fold change (downregulate 22 relative to 27)
+neg_venn_sub <- venn_df %>% 
+  filter(exp_type == "subL_FC" & !is.na(foldchange) & foldchange < 0) %>% 
+  pull(gene_id)
+
+## this is for negative fold change (downregulate for 32 relative to 27)
+neg_venn_supra <- venn_df %>% 
+  filter(exp_type == "supraL_FC" & !is.na(foldchange) & foldchange > 0) %>% 
+  pull(gene_id)
+summary(pos_venn_sub)
+summary(pos_venn_supra)
+summary(neg_venn_sub)
+summary(neg_venn_supra)
+
+venn_list_pos <- list("22C" = pos_venn_sub,
+                      "32C" = pos_venn_supra)
+venn_list_neg <- list("22C" = neg_venn_sub,
+                      "32C" = neg_venn_supra)
+venn <- venn.diagram(venn_list_pos, NULL,
+                          col = "transparent",
+                          fill = c("#350498", "#FBA139"),
+                          alpha = 0.50,
+                          cex = 0.8,
+                          fontfamily = "sans",
+                          fontface = "bold",
+                          cat.col = c("#350498", "#FBA139"),
+                          cat.cex = 0.8,
+                          cat.fontfamily = "sans",
+                          margin = 0.2,
+                          main.fontfamily = "sans",
+                          print.mode = c("raw","percent"), # Show both numbers and percent
+                          main.pos = c(0.5,0.9))
+
+grid.draw(venn)
+pdf(file = "VD_L_up_v27.pdf")
+grid.draw(venn)
+dev.off()
+
+## extract the overlap analysis so you have the list of genes that are in each section of the venn diagram
+list <- calculate.overlap(venn_list_pos)
+summary(list)
+
+# core genes
+write.csv(list$a3,"VD_L_upregulated_core.csv", row.names = TRUE)
+
+core <- read_csv("VD_L_upregulated_core.csv")
+summary(core) # should have 75; the "core" genes are included in this count
+head(core)
+
+# 22 vs 27 genes
+write.csv(list$a1,"VD_L_upregulated_22v27.csv", row.names = TRUE)
+
+sub <- read_csv("VD_L_upregulated_22v27.csv")
+head(sub)
+summary(sub)
+head(core)
+sub_df <- left_join(sub, core, by = "x")
+sub_df
+summary(sub_df)
+head(sub_df)
+sub_df <- sub_df[is.na(sub_df$...1.y),]
+head(sub_df)
+summary(sub_df)
+write.csv(sub_df$x,"VD_L_upregulated_22v27_deduped.csv", row.names = TRUE)
+
+# 32 vs 27 genes
+write.csv(list$a2,"VD_L_upregulated_32v27.csv", row.names = TRUE)
+
+supra <- read_csv("VD_L_upregulated_32v27.csv")
+head(supra)
+summary(supra)
+head(core)
+supra_df <- left_join(supra, core, by = "x")
+supra_df
+summary(supra_df)
+head(supra_df)
+supra_df <- supra_df[is.na(supra_df$...1.y),]
+head(supra_df)
+summary(supra_df)
+
+write.csv(supra_df$x,"VD_L_upregulated_32v27_deduped.csv", row.names = TRUE)
+
+# Downregulated Day L DEG Venn Diagrams - build Venn Diagram and extract gene lists
+venn <- venn.diagram(venn_list_neg, NULL,
+                          col = "transparent",
+                          fill = c("#350498", "#FBA139"),
+                          alpha = 0.50,
+                          cex = 0.8,
+                          fontfamily = "sans",
+                          fontface = "bold",
+                          cat.col = c("#350498", "#FBA139"),
+                          cat.cex = 0.8,
+                          cat.fontfamily = "sans",
+                          margin = 0.2,
+                          main.fontfamily = "sans",
+                          print.mode = c("raw","percent"), # Show both numbers and percent
+                          main.pos = c(0.5,0.9))
+grid.draw(venn)
+
+pdf(file = "VD_L_down_v27.pdf")
+grid.draw(venn)
+dev.off()
+
+## extract the overlap analysis so you have the list of genes that are in each section of the venn diagram
+list <- calculate.overlap(venn_list_neg)
+summary(list)
+
+# core genes shared across day treatments
+write.csv(list$a3,"VD_L_downregulated_core.csv", row.names = TRUE)
+
+core <- read_csv("VD_L_downregulated_core.csv")
+summary(core) # should have 79; the "core" genes are included in this count
+head(core)
+
+# 21 vs 27 genes
+write.csv(list$a1,"VD_L_downregulated_22v27.csv", row.names = TRUE)
+
+sub <- read_csv("VD_L_downregulated_22v27.csv")
+head(sub)
+summary(sub)
+head(core)
+sub_df <- left_join(sub, core, by = "x")
+sub_df
+summary(sub_df)
+head(sub_df)
+sub_df <- sub_df[is.na(sub_df$...1.y),]
+head(sub_df)
+summary(sub_df)
+
+write.csv(sub_df$x,"VD_L_downregulated_22v27_deduped.csv", row.names = TRUE)
+
+# 32 vs 27 genes
+write.csv(list$a2,"VD_L_downregulated_32v27.csv", row.names = TRUE)
+
+supra <- read_csv("VD_L_downregulated_32v27.csv")
+head(supra)
+summary(supra)
+head(core)
+supra_df <- left_join(supra, core, by = "x")
+supra_df
+summary(supra_df)
+head(supra_df)
+supra_df <- supra_df[is.na(supra_df$...1.y),]
+head(supra_df)
+summary(supra_df)
+
+write.csv(supra_df$x,"VD_L_downregulated_32v27_deduped.csv", row.names = TRUE)
+```
+
+
+# limited cluster profiler 
+```{r L_clusterProfiler, eval = TRUE, message = FALSE, warning = FALSE}
+
+setwd("/Users/kylakelly/Documents/USC/research/seq/tricho/cluster_profiler/vOpt")
+
+# Core
+df <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/vOpt/VD_L_upregulated_core.csv")
+head(df)
+df_ids <- df$x
+
+# BP
+enrich <- enricher(df_ids, TERM2GENE = go2gene_BP, TERM2NAME = go2name_BP, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="L_upregulated_core_BP.csv", row.names = TRUE) # enricher results
+
+# MF
+enrich <- enricher(df_ids, TERM2GENE = go2gene_MF, TERM2NAME = go2name_MF, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="L_upregulated_core_MF.csv", row.names = TRUE) # enricher results
+
+# CC
+enrich <- enricher(df_ids, TERM2GENE = go2gene_CC, TERM2NAME = go2name_CC, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="L_upregulated_core_CC.csv", row.names = TRUE) # enricher results
+
+# KO
+enrich <- enrichKEGG(gene = df_ids, organism = "ko", universe = bg_KO, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="L_upregulated_core_KO.csv", row.names = TRUE) # enricher results
+
+# 22 unique 
+df <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/vOpt/VD_L_upregulated_22v27.csv")
+head(df)
+df_ids <- df$x
+
+# BP
+enrich <- enricher(df_ids, TERM2GENE = go2gene_BP, TERM2NAME = go2name_BP, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="L_upregulated_22_BP.csv", row.names = TRUE) # enricher results
+
+# MF
+enrich <- enricher(df_ids, TERM2GENE = go2gene_MF, TERM2NAME = go2name_MF, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="L_upregulated_22_MF.csv", row.names = TRUE) # enricher results
+
+# CC
+enrich <- enricher(df_ids, TERM2GENE = go2gene_CC, TERM2NAME = go2name_CC, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="L_upregulated_22_CC.csv", row.names = TRUE) # enricher results
+
+# KO
+enrich <- enrichKEGG(gene = df_ids, organism = "ko", universe = bg_KO, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="L_upregulated_22_KO.csv", row.names = TRUE) # enricher results
+
+# 32 unique
+df <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/vOpt/VD_L_upregulated_32v27.csv")
+head(df)
+df_ids <- df$x
+
+# BP
+enrich <- enricher(df_ids, TERM2GENE = go2gene_BP, TERM2NAME = go2name_BP, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="L_upregulated_32_BP.csv", row.names = TRUE) # enricher results
+
+# MF
+enrich <- enricher(df_ids, TERM2GENE = go2gene_MF, TERM2NAME = go2name_MF, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="L_upregulated_32_MF.csv", row.names = TRUE) # enricher results
+
+# CC
+enrich <- enricher(df_ids, TERM2GENE = go2gene_CC, TERM2NAME = go2name_CC, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="L_upregulated_32_CC.csv", row.names = TRUE) # enricher results
+
+# KO
+enrich <- enrichKEGG(gene = df_ids, organism = "ko", universe = bg_KO, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="L_upregulated_32_KO.csv", row.names = TRUE) # enricher results
+
+# 23LD v 27LD down
+# Core
+df <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/vOpt/VD_L_downregulated_core.csv")
+head(df)
+df_ids <- df$x
+
+# BP
+enrich <- enricher(df_ids, TERM2GENE = go2gene_BP, TERM2NAME = go2name_BP, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="L_downregulated_core_BP.csv", row.names = TRUE) # enricher results
+
+# MF
+enrich <- enricher(df_ids, TERM2GENE = go2gene_MF, TERM2NAME = go2name_MF, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="L_downregulated_core_MF.csv", row.names = TRUE) # enricher results
+
+# CC
+enrich <- enricher(df_ids, TERM2GENE = go2gene_CC, TERM2NAME = go2name_CC, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="L_downregulated_core_CC.csv", row.names = TRUE) # enricher results
+
+# KO
+enrich <- enrichKEGG(gene = df_ids, organism = "ko", universe = bg_KO, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="L_downregulated_core_KO.csv", row.names = TRUE) # enricher results
+
+# 22 unique 
+df <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/vOpt/VD_L_downregulated_22v27.csv")
+head(df)
+df_ids <- df$x
+
+# BP
+enrich <- enricher(df_ids, TERM2GENE = go2gene_BP, TERM2NAME = go2name_BP, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="L_downregulated_22_BP.csv", row.names = TRUE) # enricher results
+
+# MF
+enrich <- enricher(df_ids, TERM2GENE = go2gene_MF, TERM2NAME = go2name_MF, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="L_downregulated_22_MF.csv", row.names = TRUE) # enricher results
+
+# CC
+enrich <- enricher(df_ids, TERM2GENE = go2gene_CC, TERM2NAME = go2name_CC, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="L_downregulated_22_CC.csv", row.names = TRUE) # enricher results
+
+# KO
+enrich <- enrichKEGG(gene = df_ids, organism = "ko", universe = bg_KO, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="L_downregulated_22_KO.csv", row.names = TRUE) # enricher results
+
+# 32 unique
+df <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/vOpt/VD_L_downregulated_32v27.csv")
+head(df)
+df_ids <- df$x
+
+# BP
+enrich <- enricher(df_ids, TERM2GENE = go2gene_BP, TERM2NAME = go2name_BP, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="L_downregulated_32_BP.csv", row.names = TRUE) # enricher results
+
+# MF
+enrich <- enricher(df_ids, TERM2GENE = go2gene_MF, TERM2NAME = go2name_MF, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="L_downregulated_32_MF.csv", row.names = TRUE) # enricher results
+
+# CC
+enrich <- enricher(df_ids, TERM2GENE = go2gene_CC, TERM2NAME = go2name_CC, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="L_downregulated_32_CC.csv", row.names = TRUE) # enricher results
+
+# KO
+enrich <- enrichKEGG(gene = df_ids, organism = "ko", universe = bg_KO, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="L_downregulated_32_KO.csv", row.names = TRUE) # enricher results
+```
+
+
+
+### Temperatures (22 v 32) R and L cluster profiler
+```{r 23RDv32RD_clusterProfiler, eval = TRUE, message = FALSE, warning = FALSE}
+
+setwd("/Users/kylakelly/Documents/USC/research/seq/tricho/cluster_profiler/vOpt")
+
+#22R vs 32R
+# up
+df <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/vectors/R22vR32_up_vector.csv")
+head(df)
+df_ids <- df$gene_id
+
+# BP
+enrich <- enricher(df_ids, TERM2GENE = go2gene_BP, TERM2NAME = go2name_BP, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="R22vR32_up_BP.csv", row.names = TRUE) # enricher results
+
+# MF
+enrich <- enricher(df_ids, TERM2GENE = go2gene_MF, TERM2NAME = go2name_MF, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="R22vR32_up_MF.csv", row.names = TRUE) # enricher results
+
+# CC
+enrich <- enricher(df_ids, TERM2GENE = go2gene_CC, TERM2NAME = go2name_CC, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="R22vR32_up_CC.csv", row.names = TRUE) # enricher results
+
+# KO
+enrich <- enrichKEGG(gene = df_ids, organism = "ko", universe = bg_KO, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="R22vR32_up_KO.csv", row.names = TRUE) # enricher results
+
+
+# down
+df <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/vectors/R22vR32_down_vector.csv")
+head(df)
+df_ids <- df$gene_id
+
+# BP
+enrich <- enricher(df_ids, TERM2GENE = go2gene_BP, TERM2NAME = go2name_BP, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="R22vR32_down_BP.csv", row.names = TRUE) # enricher results
+
+# MF
+enrich <- enricher(df_ids, TERM2GENE = go2gene_MF, TERM2NAME = go2name_MF, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="R22vR32_down_MF.csv", row.names = TRUE) # enricher results
+
+# CC
+enrich <- enricher(df_ids, TERM2GENE = go2gene_CC, TERM2NAME = go2name_CC, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="R22vR32_down_CC.csv", row.names = TRUE) # enricher results
+
+# KO
+enrich <- enrichKEGG(gene = df_ids, organism = "ko", universe = bg_KO, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="R22vR32_down_KO.csv", row.names = TRUE) # enricher results
+
+
+#23L vs 32L
+# up
+df <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/vectors/L22vL32_up_vector.csv")
+head(df)
+df_ids <- df$gene_id
+
+# BP
+enrich <- enricher(df_ids, TERM2GENE = go2gene_BP, TERM2NAME = go2name_BP, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="L22vL32_up_BP.csv", row.names = TRUE) # enricher results
+
+# MF
+enrich <- enricher(df_ids, TERM2GENE = go2gene_MF, TERM2NAME = go2name_MF, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="L22vL32_up_MF.csv", row.names = TRUE) # enricher results
+
+# CC
+enrich <- enricher(df_ids, TERM2GENE = go2gene_CC, TERM2NAME = go2name_CC, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="L22vL32_up_CC.csv", row.names = TRUE) # enricher results
+
+# KO
+enrich <- enrichKEGG(gene = df_ids, organism = "ko", universe = bg_KO, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="L22vL32_up_KO.csv", row.names = TRUE) # enricher results
+
+# down
+df <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/venn_diagram/vectors/L22vL32_down_vector.csv")
+head(df)
+df_ids <- df$gene_id
+
+# BP
+enrich <- enricher(df_ids, TERM2GENE = go2gene_BP, TERM2NAME = go2name_BP, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="L22vL32_down_BP.csv", row.names = TRUE) # enricher results
+
+# MF
+enrich <- enricher(df_ids, TERM2GENE = go2gene_MF, TERM2NAME = go2name_MF, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="L22vL32_down_MF.csv", row.names = TRUE) # enricher results
+
+# CC
+enrich <- enricher(df_ids, TERM2GENE = go2gene_CC, TERM2NAME = go2name_CC, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="L22vL32_down_CC.csv", row.names = TRUE) # enricher results
+
+# KO
+enrich <- enrichKEGG(gene = df_ids, organism = "ko", universe = bg_KO, minGSSize = 5)
+enrich
+
+write.csv(enrich, file="L22vL32_down_KO.csv", row.names = TRUE) # enricher results
+```
+
