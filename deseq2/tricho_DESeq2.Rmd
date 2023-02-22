@@ -39,7 +39,6 @@ Remove duplicate KOs
 
 ```{r ddply, eval = TRUE, message = FALSE, warning = FALSE}
 # Gene counts were assigned to Kegg IDs and the duplicate KOs in the dataset will be merged.
-# setwd("/Users/kylakelly/Documents/USC/research/seq/tricho/deseq2/")
 
 # did some work in excel to rename columns, and find and replace blanks KOs with "NA"
 df <- read.csv("deseq2/Tricho_fewarm_counts_stranded_v2.csv") 

@@ -1,0 +1,3 @@
+"","ID","Description","GeneRatio","BgRatio","pvalue","p.adjust","qvalue","geneID","Count"
+"ko00410","ko00410","beta-Alanine metabolism","2/17","6/917",0.00464859491683979,0.0372889199433955,0.0314011957418067,"K01918/K13799",2
+"ko00196","ko00196","Photosynthesis - antenna proteins","3/17","20/917",0.00497185599245273,0.0372889199433955,0.0314011957418067,"K02288/K05383/K05386",3

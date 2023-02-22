@@ -1,0 +1,2 @@
+"","ID","Description","GeneRatio","BgRatio","pvalue","p.adjust","qvalue","geneID","Count"
+"GO:0009399","GO:0009399","nitrogen fixation","7/227","8/1076",0.000113314731327656,0.0362607140248499,0.0341136980628522,"K02586/K02588/K02591/K02592/K02593/K02596/K02597",7
