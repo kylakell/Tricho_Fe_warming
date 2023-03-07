@@ -1,1 +1,2 @@
 "","ID","Description","GeneRatio","BgRatio","pvalue","p.adjust","qvalue","geneID","Count"
+"GO:0046933","GO:0046933","proton-transporting ATP synthase activity, rotational mechanism","6/312","8/2107",0.00021703252798922,0.0392828875660487,0.0372382126970977,"K02108/K02109/K02110/K02113/K02114/K02115",6

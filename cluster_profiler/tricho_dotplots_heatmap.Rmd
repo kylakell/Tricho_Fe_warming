@@ -1,0 +1,2223 @@
+---
+title: "Crocosphaera_Fewarming_enrichment_visuals"
+author: "Nina Yang, PhD"
+adapted by: Kyla Kelly, PhD candidate
+date: "12/16/2022"
+updated: "2/23/2023"
+output: html_document
+---
+
+## Background
+
+This document outlines the steps taken for the Venn Diagram and clusterProfiler visualizations and tables.
+
+**1. Install (if required) & upload packages into your current session**
+
+```{r install-packages, eval = TRUE, message = FALSE, warning = FALSE}
+```
+
+**2. Upload the package into your current session**
+```{r library, eval = TRUE, message = FALSE, warning = FALSE}
+library("dbplyr")
+library("tidyverse")
+library("VennDiagram")
+library("gridExtra")
+library("grid")
+library("lattice")
+library("ComplexHeatmap")
+library("plyr")
+library("circlize")
+```
+
+**3. Dotplots with clusterProfiler: Day versus Night**
+
+### Day versus Night (at each temp, not considering overlap, replete)
+Deleted
+
+**4. Dotplots with clusterProfiler: Replete and Limited for Day vs Night**
+Deleted
+
+# START HERE #
+**5. Dotplots with clusterProfiler: Replete vs Limited for Day and Night**
+
+### Plotting after clusterProfilers
+
+Based on Venn Diagrams
+
+```{r Limited_downregulated_df, eval = TRUE, message = FALSE, warning = FALSE}
+
+# This is for Limited day, core, down
+
+df1 <- read_csv("Fe_RL/Core_down_enrich_BP.csv")
+head(df1)
+GO <- rep("BP", nrow(df1))
+df1 <- cbind(df1, GO)
+head(df1)
+
+df2 <- read_csv("Fe_RL/Core_down_enrich_MF.csv")
+head(df2)
+GO <- rep("MF", nrow(df2))
+df2 <- cbind(df2, GO)
+head(df2)
+
+df3 <- read_csv("Fe_RL/Core_down_enrich_CC.csv")
+head(df3)
+GO <- rep("CC", nrow(df3))
+df3 <- cbind(df3, GO)
+head(df3)
+
+df4 <- read_csv("Fe_RL/Core_down_enrich_KO.csv")
+head(df4)
+GO <- rep("KO", nrow(df4))
+df4 <- cbind(df4, GO)
+head(df4)
+
+df <- rbind(df1, df2, df3, df4)
+head(df)
+treatment <- rep("core", nrow(df))
+Lcore_down <- cbind(df, treatment)
+head(Lcore_down)
+tail(Lcore_down)
+
+# This is for Limited day, unique, down
+
+df1 <- read_csv("Fe_RL/Unique_22_down_enrich_BP.csv")
+head(df1)
+GO <- rep("BP", nrow(df1))
+df1 <- cbind(df1, GO)
+head(df1)
+
+df2 <- read_csv("Fe_RL/Unique_22_down_enrich_MF.csv")
+head(df2)
+GO <- rep("MF", nrow(df2))
+df2 <- cbind(df2, GO)
+head(df2)
+
+df3 <- read_csv("Fe_RL/Unique_22_down_enrich_CC.csv")
+head(df3)
+GO <- rep("CC", nrow(df3))
+df3 <- cbind(df3, GO)
+head(df3)
+
+df4 <- read_csv("Fe_RL/Unique_22_down_enrich_KO.csv")
+head(df4)
+GO <- rep("KO", nrow(df4))
+df4 <- cbind(df4, GO)
+head(df4)
+
+df <- rbind(df1, df2, df3, df4)
+head(df)
+treatment <- rep("sub", nrow(df))
+Lunique22_down <- cbind(df, treatment)
+head(Lunique22_down)
+
+
+df1 <- read_csv("Fe_RL/Unique_27_down_enrich_BP.csv")
+head(df1)
+GO <- rep("BP", nrow(df1))
+df1 <- cbind(df1, GO)
+head(df1)
+
+df2 <- read_csv("Fe_RL/Unique_27_down_enrich_MF.csv")
+head(df2)
+GO <- rep("MF", nrow(df2))
+df2 <- cbind(df2, GO)
+head(df2)
+
+df3 <- read_csv("Fe_RL/Unique_27_down_enrich_CC.csv")
+head(df3)
+GO <- rep("CC", nrow(df3))
+df3 <- cbind(df3, GO)
+head(df3)
+
+df4 <- read_csv("Fe_RL/Unique_27_down_enrich_KO.csv")
+head(df4)
+GO <- rep("KO", nrow(df4))
+df4 <- cbind(df4, GO)
+head(df4)
+
+df <- rbind(df1, df2, df3, df4)
+head(df)
+treatment <- rep("opt", nrow(df))
+Lunique27_down <- cbind(df, treatment)
+head(Lunique27_down)
+
+
+df1 <- read_csv("Fe_RL/Unique_32_down_enrich_BP.csv")
+head(df1)
+GO <- rep("BP", nrow(df1))
+df1 <- cbind(df1, GO)
+head(df1)
+
+df2 <- read_csv("Fe_RL/Unique_32_down_enrich_MF.csv")
+head(df2)
+GO <- rep("MF", nrow(df2))
+df2 <- cbind(df2, GO)
+head(df2)
+
+df3 <- read_csv("Fe_RL/Unique_32_down_enrich_CC.csv")
+head(df3)
+GO <- rep("CC", nrow(df3))
+df3 <- cbind(df3, GO)
+head(df3)
+
+df4 <- read_csv("Fe_RL/Unique_32_down_enrich_KO.csv")
+head(df4)
+GO <- rep("KO", nrow(df4))
+df4 <- cbind(df4, GO)
+head(df4)
+
+df <- rbind(df1, df2, df3, df4)
+head(df)
+treatment <- rep("supra", nrow(df))
+Lunique32_down <- cbind(df, treatment)
+head(Lunique32_down)
+
+# shared sub opt
+
+df1 <- read_csv("Fe_RL/Shared_22_27_down_enrich_BP.csv")
+head(df1)
+GO <- rep("BP", nrow(df1))
+df1 <- cbind(df1, GO)
+head(df1)
+
+df2 <- read_csv("Fe_RL/Shared_22_27_down_enrich_MF.csv")
+head(df2)
+GO <- rep("MF", nrow(df2))
+df2 <- cbind(df2, GO)
+head(df2)
+
+df3 <- read_csv("Fe_RL/Shared_22_27_down_enrich_CC.csv")
+head(df3)
+GO <- rep("CC", nrow(df3))
+df3 <- cbind(df3, GO)
+head(df3)
+
+df4 <- read_csv("Fe_RL/Shared_22_27_down_enrich_KO.csv")
+head(df4)
+GO <- rep("KO", nrow(df4))
+df4 <- cbind(df4, GO)
+head(df4)
+
+df <- rbind(df1, df2, df3, df4)
+head(df)
+treatment <- rep("sub&opt", nrow(df))
+Lsubopt_down <- cbind(df, treatment)
+head(Lsubopt_down)
+
+# shared sub supra
+
+df1 <- read_csv("Fe_RL/Shared_22_32_down_enrich_BP.csv")
+head(df1)
+GO <- rep("BP", nrow(df1))
+df1 <- cbind(df1, GO)
+head(df1)
+
+df2 <- read_csv("Fe_RL/Shared_22_32_down_enrich_MF.csv")
+head(df2)
+GO <- rep("MF", nrow(df2))
+df2 <- cbind(df2, GO)
+head(df2)
+
+df3 <- read_csv("Fe_RL/Shared_22_32_down_enrich_CC.csv")
+head(df3)
+GO <- rep("CC", nrow(df3))
+df3 <- cbind(df3, GO)
+head(df3)
+
+df4 <- read_csv("Fe_RL/Shared_22_32_down_enrich_KO.csv")
+head(df4)
+GO <- rep("KO", nrow(df4))
+df4 <- cbind(df4, GO)
+head(df4)
+
+df <- rbind(df1, df2, df3, df4)
+head(df)
+treatment <- rep("sub&supra", nrow(df))
+Lsubsupra_down <- cbind(df, treatment)
+head(Lsubsupra_down)
+
+# shared opt supra
+
+
+df1 <- read_csv("Fe_RL/Shared_27_32_down_enrich_BP.csv")
+head(df1)
+GO <- rep("BP", nrow(df1))
+df1 <- cbind(df1, GO)
+head(df1)
+
+df2 <- read_csv("Fe_RL/Shared_27_32_down_enrich_MF.csv")
+head(df2)
+GO <- rep("MF", nrow(df2))
+df2 <- cbind(df2, GO)
+head(df2)
+
+df3 <- read_csv("Fe_RL/Shared_27_32_down_enrich_CC.csv")
+head(df3)
+GO <- rep("CC", nrow(df3))
+df3 <- cbind(df3, GO)
+head(df3)
+
+df4 <- read_csv("Fe_RL/Shared_27_32_down_enrich_KO.csv")
+head(df4)
+GO <- rep("KO", nrow(df4))
+df4 <- cbind(df4, GO)
+head(df4)
+
+df <- rbind(df1, df2, df3, df4)
+head(df)
+treatment <- rep("opt&supra", nrow(df))
+Loptsupra_down <- cbind(df, treatment)
+head(Loptsupra_down)
+
+```
+
+```{r Limited_upregulated_df, eval = TRUE, message = FALSE, warning = FALSE}
+
+# This is for Limited day, core, up
+# which means upregulated for Fe limited, relative to replete
+
+df1 <- read_csv("Fe_RL/Core_up_enrich_BP.csv")
+head(df1)
+GO <- rep("BP", nrow(df1))
+df1 <- cbind(df1, GO)
+head(df1)
+
+df2 <- read_csv("Fe_RL/Core_up_enrich_MF.csv")
+head(df2)
+GO <- rep("MF", nrow(df2))
+df2 <- cbind(df2, GO)
+head(df2)
+
+df3 <- read_csv("Fe_RL/Core_up_enrich_CC.csv")
+head(df3)
+GO <- rep("CC", nrow(df3))
+df3 <- cbind(df3, GO)
+head(df3)
+
+df4 <- read_csv("Fe_RL/Core_up_enrich_KO.csv")
+head(df4)
+GO <- rep("KO", nrow(df4))
+df4 <- cbind(df4, GO)
+head(df4)
+
+df <- rbind(df1, df2, df3, df4)
+head(df)
+treatment <- rep("core", nrow(df))
+Lcore_up <- cbind(df, treatment)
+head(Lcore_up)
+tail(Lcore_up)
+
+
+# This is for Limited, unique, up
+
+df1 <- read_csv("Fe_RL/Unique_22_up_enrich_BP.csv")
+head(df1)
+GO <- rep("BP", nrow(df1))
+df1 <- cbind(df1, GO)
+head(df1)
+
+df2 <- read_csv("Fe_RL/Unique_22_up_enrich_MF.csv")
+head(df2)
+GO <- rep("MF", nrow(df2))
+df2 <- cbind(df2, GO)
+head(df2)
+
+df3 <- read_csv("Fe_RL/Unique_22_up_enrich_CC.csv")
+head(df3)
+GO <- rep("CC", nrow(df3))
+df3 <- cbind(df3, GO)
+head(df3)
+
+df4 <- read_csv("Fe_RL/Unique_22_up_enrich_KO.csv")
+head(df4)
+GO <- rep("KO", nrow(df4))
+df4 <- cbind(df4, GO)
+head(df4)
+
+df <- rbind(df1, df2, df3, df4)
+head(df)
+treatment <- rep("sub", nrow(df))
+Lunique22_up <- cbind(df, treatment)
+head(Lunique22_up)
+
+
+df1 <- read_csv("Fe_RL/Unique_27_up_enrich_BP.csv")
+head(df1)
+GO <- rep("BP", nrow(df1))
+df1 <- cbind(df1, GO)
+head(df1)
+
+df2 <- read_csv("Fe_RL/Unique_27_up_enrich_MF.csv")
+head(df2)
+GO <- rep("MF", nrow(df2))
+df2 <- cbind(df2, GO)
+head(df2)
+
+df3 <- read_csv("Fe_RL/Unique_27_up_enrich_CC.csv")
+head(df3)
+GO <- rep("CC", nrow(df3))
+df3 <- cbind(df3, GO)
+head(df3)
+
+df4 <- read_csv("Fe_RL/Unique_27_up_enrich_KO.csv")
+head(df4)
+GO <- rep("KO", nrow(df4))
+df4 <- cbind(df4, GO)
+head(df4)
+
+df <- rbind(df1, df2, df3, df4)
+head(df)
+treatment <- rep("opt", nrow(df))
+Lunique27_up <- cbind(df, treatment)
+head(Lunique27_up)
+
+
+df1 <- read_csv("Fe_RL/Unique_32_up_enrich_BP.csv")
+head(df1)
+GO <- rep("BP", nrow(df1))
+df1 <- cbind(df1, GO)
+head(df1)
+
+df2 <- read_csv("Fe_RL/Unique_32_up_enrich_MF.csv")
+head(df2)
+GO <- rep("MF", nrow(df2))
+df2 <- cbind(df2, GO)
+head(df2)
+
+df3 <- read_csv("Fe_RL/Unique_32_up_enrich_CC.csv")
+head(df3)
+GO <- rep("CC", nrow(df3))
+df3 <- cbind(df3, GO)
+head(df3)
+
+df4 <- read_csv("Fe_RL/Unique_32_up_enrich_KO.csv")
+head(df4)
+GO <- rep("KO", nrow(df4))
+df4 <- cbind(df4, GO)
+head(df4)
+
+df <- rbind(df1, df2, df3, df4)
+head(df)
+treatment <- rep("supra", nrow(df))
+Lunique32_up <- cbind(df, treatment)
+head(Lunique32_up)
+
+# shared sub opt
+
+df1 <- read_csv("Fe_RL/Shared_22_27_up_enrich_BP.csv")
+head(df1)
+GO <- rep("BP", nrow(df1))
+df1 <- cbind(df1, GO)
+head(df1)
+
+df2 <- read_csv("Fe_RL/Shared_22_27_up_enrich_MF.csv")
+head(df2)
+GO <- rep("MF", nrow(df2))
+df2 <- cbind(df2, GO)
+head(df2)
+
+df3 <- read_csv("Fe_RL/Shared_22_27_up_enrich_CC.csv")
+head(df3)
+GO <- rep("CC", nrow(df3))
+df3 <- cbind(df3, GO)
+head(df3)
+
+df4 <- read_csv("Fe_RL/Shared_22_27_up_enrich_KO.csv")
+head(df4)
+GO <- rep("KO", nrow(df4))
+df4 <- cbind(df4, GO)
+head(df4)
+
+df <- rbind(df1, df2, df3, df4)
+head(df)
+treatment <- rep("sub&opt", nrow(df))
+Lsubopt_up <- cbind(df, treatment)
+head(Lsubopt_up)
+
+# shared sub supra
+
+df1 <- read_csv("Fe_RL/Shared_22_32_up_enrich_BP.csv")
+head(df1)
+GO <- rep("BP", nrow(df1))
+df1 <- cbind(df1, GO)
+head(df1)
+
+df2 <- read_csv("Fe_RL/Shared_22_32_up_enrich_MF.csv")
+head(df2)
+GO <- rep("MF", nrow(df2))
+df2 <- cbind(df2, GO)
+head(df2)
+
+df3 <- read_csv("Fe_RL/Shared_22_32_up_enrich_CC.csv")
+head(df3)
+GO <- rep("CC", nrow(df3))
+df3 <- cbind(df3, GO)
+head(df3)
+
+df4 <- read_csv("Fe_RL/Shared_22_32_up_enrich_KO.csv")
+head(df4)
+GO <- rep("KO", nrow(df4))
+df4 <- cbind(df4, GO)
+head(df4)
+
+df <- rbind(df1, df2, df3, df4)
+head(df)
+treatment <- rep("sub&supra", nrow(df))
+Lsubsupra_up <- cbind(df, treatment)
+head(Lsubsupra_up)
+
+# shared opt supra
+
+
+df1 <- read_csv("Fe_RL/Shared_27_32_up_enrich_BP.csv")
+head(df1)
+GO <- rep("BP", nrow(df1))
+df1 <- cbind(df1, GO)
+head(df1)
+
+df2 <- read_csv("Fe_RL/Shared_27_32_up_enrich_MF.csv")
+head(df2)
+GO <- rep("MF", nrow(df2))
+df2 <- cbind(df2, GO)
+head(df2)
+
+df3 <- read_csv("Fe_RL/Shared_27_32_up_enrich_CC.csv")
+head(df3)
+GO <- rep("CC", nrow(df3))
+df3 <- cbind(df3, GO)
+head(df3)
+
+df4 <- read_csv("Fe_RL/Shared_27_32_up_enrich_KO.csv")
+head(df4)
+GO <- rep("KO", nrow(df4))
+df4 <- cbind(df4, GO)
+head(df4)
+
+df <- rbind(df1, df2, df3, df4)
+head(df)
+treatment <- rep("opt&supra", nrow(df))
+Loptsupra_up <- cbind(df, treatment)
+head(Loptsupra_up)
+
+```
+
+```{r RLday_dotplot, eval = TRUE, message = FALSE, warning = FALSE}
+
+# upregulated for limited
+
+L_df_up <- rbind(Lcore_up, Lunique22_up, Lunique27_up, Lunique32_up, Lsubopt_up, Lsubsupra_up, Loptsupra_up) 
+
+dim(L_df_up) # 8 x 12
+
+reg <- rep("upregulated", nrow(L_df_up))
+L_up <- cbind(L_df_up, reg)
+head(L_up)
+tail(L_up)
+dim(L_up) # 8x13
+
+
+L_df_down <- rbind(Lcore_down, Lunique22_down, Lunique27_down, Lunique32_down, Lsubopt_down, Lsubsupra_down, Loptsupra_down) 
+reg <- rep("downregulated", nrow(L_df_down))
+L_down <- cbind(L_df_down, reg)
+head(L_down)
+tail(L_down)
+dim(L_down)
+
+df_L <- rbind(L_up, L_down)
+diel <- rep("day", nrow(df_L))
+L_all <- cbind(df_L, diel)
+head(L_all)
+dim(L_all)
+colnames(L_all)
+
+df_L$GO.Description <- paste(df_L$Description, df_L$ID, sep=' | ')  # generate new column with concatenated GO description and term
+head(df_L)  
+tail(df_L)  
+dim(df_L)
+
+df_L$GO.Description = forcats::fct_rev(factor(df_L$GO.Description)) #arrange terms in alphabetical order
+df_L
+dim(df_L)
+f <- factor(df_L$GO, levels = c("BP", "MF", "CC", "KO"))
+f
+fct_relevel(f)
+
+df_L$GO = fct_relevel(f, "KO", after = Inf) #arrange terms in alphabetical order
+df_L$GO
+
+write.csv(as.data.frame(df_L), 
+          file="L_table.csv")
+
+head(df_L)
+dim(df_L)
+
+
+plot <- ggplot(df_L, aes(treatment, GO.Description, color = p.adjust)) + 
+  geom_point(aes(size = Count)) + facet_grid(GO ~ reg, scales = "free") + scale_color_gradient(low = "#282828", high = "#F5F5F5") 
+
+plot
+
+plot <- plot + xlab("") + 
+  theme(panel.grid.major = element_line(colour = "lightgrey"), axis.text.y = element_text(colour = "black", size = 5),
+        axis.text.x = element_text(colour = "black", size = 7, angle = 45, vjust = 1, hjust = 1),
+        axis.title.y = element_blank(),
+        axis.title.x = element_text(face = "bold", size = 7),
+        panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 0.7), 
+        legend.title = element_blank(),
+        legend.text = element_text(colour = "black", size = 7, face = "bold"),
+        strip.text.y = element_text(size = 7, color = "black", face = "bold"),
+        strip.text.x = element_text(size = 7, color = "black", face = "bold"),
+        strip.background.y = element_rect(color = "black", fill = "#ededed", size = 0.5, linetype = "solid"), 
+        strip.background.x = element_rect(color = "white", fill = "white", size = 0.5, linetype = "solid"))
+
+plot
+
+ggsave("VD_L_dotplot.pdf", height = 35, width = 20, units = "cm", dpi=300)
+
+
+head(df_L)
+df_L_core <- filter(df_L, treatment == "core")
+head(df_L_core, 10)
+
+plot <- ggplot(df_L_core, aes(treatment, GO.Description, color = p.adjust)) + 
+  geom_point(aes(size = Count)) + facet_grid(GO ~ reg, scales = "free") + scale_color_gradient(low = "#282828", high = "#F5F5F5") 
+
+plot
+
+plot <- plot + xlab("") + 
+  theme(panel.grid.major = element_line(colour = "lightgrey"), axis.text.y = element_text(colour = "black", size = 5),
+        axis.text.x = element_text(colour = "black", size = 7, angle = 45, vjust = 1, hjust = 1),
+        axis.title.y = element_blank(),
+        axis.title.x = element_text(face = "bold", size = 7),
+        panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 0.7), 
+        legend.title = element_blank(),
+        legend.text = element_text(colour = "black", size = 7, face = "bold"),
+        strip.text.y = element_text(size = 7, color = "black", face = "bold"),
+        strip.text.x = element_text(size = 7, color = "black", face = "bold"),
+        strip.background.y = element_rect(color = "black", fill = "#ededed", size = 0.5, linetype = "solid"), 
+        strip.background.x = element_rect(color = "white", fill = "white", size = 0.5, linetype = "solid"))
+
+plot
+
+ggsave("dotplots/L_core_dotplot.pdf", height = 35, width = 10, units = "cm", dpi=300)
+
+
+head(df_L)
+df_L_shared <- filter(df_L, treatment == "sub&supra" | treatment == "opt&supra" | treatment == "sub&opt")
+head(df_L_shared, 10)
+
+plot <- ggplot(df_L_shared, aes(treatment, GO.Description, color = p.adjust)) + 
+  geom_point(aes(size = Count)) + facet_grid(GO ~ reg, scales = "free") + scale_color_gradient(low = "#282828", high = "#F5F5F5") 
+
+plot
+
+plot <- plot + xlab("") + 
+  theme(panel.grid.major = element_line(colour = "lightgrey"), axis.text.y = element_text(colour = "black", size = 5),
+        axis.text.x = element_text(colour = "black", size = 7, angle = 45, vjust = 1, hjust = 1),
+        axis.title.y = element_blank(),
+        axis.title.x = element_text(face = "bold", size = 7),
+        panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 0.7), 
+        legend.title = element_blank(),
+        legend.text = element_text(colour = "black", size = 7, face = "bold"),
+        strip.text.y = element_text(size = 7, color = "black", face = "bold"),
+        strip.text.x = element_text(size = 7, color = "black", face = "bold"),
+        strip.background.y = element_rect(color = "black", fill = "#ededed", size = 0.5, linetype = "solid"), 
+        strip.background.x = element_rect(color = "white", fill = "white", size = 0.5, linetype = "solid"))
+
+plot
+
+ggsave("dotplots/L_shared_dotplot.pdf", height = 10, width = 10, units = "cm", dpi=300)
+
+
+head(df_L)
+df_L_unique <- filter(df_L, treatment == "opt" | treatment == "sub" | treatment == "supra")
+
+head(df_L_unique, 10)
+
+plot <- ggplot(df_L_unique, aes(treatment, GO.Description, color = p.adjust)) + 
+  geom_point(aes(size = Count)) + facet_grid(GO ~ reg, scales = "free") + scale_color_gradient(low = "#282828", high = "#F5F5F5") 
+
+plot
+
+plot <- plot + xlab("") + 
+  theme(panel.grid.major = element_line(colour = "lightgrey"), axis.text.y = element_text(colour = "black", size = 5),
+        axis.text.x = element_text(colour = "black", size = 7, angle = 45, vjust = 1, hjust = 1),
+        axis.title.y = element_blank(),
+        axis.title.x = element_text(face = "bold", size = 7),
+        panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 0.7), 
+        legend.title = element_blank(),
+        legend.text = element_text(colour = "black", size = 7, face = "bold"),
+        strip.text.y = element_text(size = 7, color = "black", face = "bold"),
+        strip.text.x = element_text(size = 7, color = "black", face = "bold"),
+        strip.background.y = element_rect(color = "black", fill = "#ededed", size = 0.5, linetype = "solid"), 
+        strip.background.x = element_rect(color = "white", fill = "white", size = 0.5, linetype = "solid"))
+
+plot
+
+ggsave("dotplots/L_unique_dotplot.pdf", height = 12, width = 12, units = "cm", dpi=300)
+
+```
+
+**5. Dotplots with clusterProfiler: Replete vs Limited for Different Temperatures, Day and Night**
+
+### R vs L for different temperatures
+
+```{r temp_dotplot_input_L_down, eval = TRUE, message = FALSE, warning = FALSE}
+
+# This is for temperatures and Fe-limited downregulated 
+
+#subL down day
+df1 <- read_csv("Fe_RL/RL_for_different_temps/sub_L_down_BP.csv")
+head(df1)
+GO <- rep("BP", nrow(df1))
+df1 <- cbind(df1, GO)
+head(df1)
+
+df2 <- read_csv("Fe_RL/RL_for_different_temps/sub_L_down_MF.csv")
+GO <- rep("MF", nrow(df2))
+df2 <- cbind(df2, GO)
+head(df2)
+
+df3 <- read_csv("Fe_RL/RL_for_different_temps/sub_L_down_CC.csv")
+GO <- rep("CC", nrow(df3))
+df3 <- cbind(df3, GO)
+head(df3)
+
+df4 <- read_csv("Fe_RL/RL_for_different_temps/sub_L_down_KO.csv")
+GO <- rep("KO", nrow(df4))
+df4 <- cbind(df4, GO)
+head(df4)
+
+df_subL <- rbind(df1, df2, df3, df4)
+head(df_subL)
+diel <- rep("day", nrow(df_subL))
+temp <- rep("22C", nrow(df_subL))
+Fe <- rep("downregulated", nrow(df_subL))
+subL <- cbind(df_subL, diel, temp, Fe)
+head(subL)
+
+#optL day
+df5 <- read_csv("Fe_RL/RL_for_different_temps/opt_L_down_BP.csv")
+GO <- rep("BP", nrow(df5))
+df5 <- cbind(df5, GO)
+head(df5)
+
+df6 <- read_csv("Fe_RL/RL_for_different_temps/opt_L_down_MF.csv")
+GO <- rep("MF", nrow(df6))
+df6 <- cbind(df6, GO)
+head(df6)
+
+df7 <- read_csv("Fe_RL/RL_for_different_temps/opt_L_down_CC.csv")
+GO <- rep("CC", nrow(df7))
+df7 <- cbind(df7, GO)
+head(df7)
+
+df8 <- read_csv("Fe_RL/RL_for_different_temps/opt_L_down_KO.csv")
+GO <- rep("KO", nrow(df8))
+df8 <- cbind(df8, GO)
+head(df8)
+
+df_optL <- rbind(df5, df6, df7, df8)
+head(df_optL)
+diel <- rep("day", nrow(df_optL))
+temp <- rep("27C", nrow(df_optL))
+Fe <- rep("downregulated", nrow(df_optL))
+optL <- cbind(df_optL, diel, temp, Fe)
+head(optL)
+
+
+#supraL day
+df9 <- read_csv("Fe_RL/RL_for_different_temps/supra_L_down_BP.csv")
+GO <- rep("BP", nrow(df9))
+df9 <- cbind(df9, GO)
+head(df9)
+
+df10 <- read_csv("Fe_RL/RL_for_different_temps/supra_L_down_MF.csv")
+GO <- rep("MF", nrow(df10))
+df10 <- cbind(df10, GO)
+head(df10)
+
+df11 <- read_csv("Fe_RL/RL_for_different_temps/supra_L_down_CC.csv")
+GO <- rep("CC", nrow(df11))
+df11 <- cbind(df11, GO)
+head(df11)
+
+df12 <- read_csv("Fe_RL/RL_for_different_temps/supra_L_down_KO.csv")
+GO <- rep("KO", nrow(df12))
+df12 <- cbind(df12, GO)
+head(df12)
+
+df_supraL <- rbind(df9, df10, df11, df12)
+head(df_supraL)
+diel <- rep("day", nrow(df_supraL))
+temp <- rep("32C", nrow(df_supraL))
+Fe <- rep("downregulated", nrow(df_supraL))
+supraL <- cbind(df_supraL, diel, temp, Fe)
+head(supraL)
+
+# df for day - limited downregulated (aka replete upregulated)
+df_temp_Ldown <- rbind(subL, optL, supraL)
+  
+```
+
+```{r temp_dotplot_input_L_up, eval = TRUE, message = FALSE, warning = FALSE}
+
+# This is for temperatures and Fe-limited upregulated 
+#subL up day
+df1 <- read_csv("Fe_RL/RL_for_different_temps/sub_L_up_BP.csv")
+head(df1)
+GO <- rep("BP", nrow(df1))
+df1 <- cbind(df1, GO)
+head(df1)
+
+df2 <- read_csv("Fe_RL/RL_for_different_temps/sub_L_up_MF.csv")
+GO <- rep("MF", nrow(df2))
+df2 <- cbind(df2, GO)
+head(df2)
+
+df3 <- read_csv("Fe_RL/RL_for_different_temps/sub_L_up_CC.csv")
+GO <- rep("CC", nrow(df3))
+df3 <- cbind(df3, GO)
+head(df3)
+
+df4 <- read_csv("Fe_RL/RL_for_different_temps/sub_L_up_KO.csv")
+GO <- rep("KO", nrow(df4))
+df4 <- cbind(df4, GO)
+head(df4)
+
+df_subL <- rbind(df1, df2, df3, df4)
+head(df_subL)
+diel <- rep("day", nrow(df_subL))
+temp <- rep("22C", nrow(df_subL))
+Fe <- rep("upregulated", nrow(df_subL))
+subL <- cbind(df_subL, diel, temp, Fe)
+head(subL)
+
+#optL day
+df5 <- read_csv("Fe_RL/RL_for_different_temps/opt_L_up_BP.csv")
+GO <- rep("BP", nrow(df5))
+df5 <- cbind(df5, GO)
+head(df5)
+
+df6 <- read_csv("Fe_RL/RL_for_different_temps/opt_L_up_MF.csv")
+GO <- rep("MF", nrow(df6))
+df6 <- cbind(df6, GO)
+head(df6)
+
+df7 <- read_csv("Fe_RL/RL_for_different_temps/opt_L_up_CC.csv")
+GO <- rep("CC", nrow(df7))
+df7 <- cbind(df7, GO)
+head(df7)
+
+df8 <- read_csv("Fe_RL/RL_for_different_temps/opt_L_up_KO.csv")
+GO <- rep("KO", nrow(df8))
+df8 <- cbind(df8, GO)
+head(df8)
+
+df_optL <- rbind(df5, df6, df7, df8)
+head(df_optL)
+diel <- rep("day", nrow(df_optL))
+temp <- rep("27C", nrow(df_optL))
+Fe <- rep("upregulated", nrow(df_optL))
+optL <- cbind(df_optL, diel, temp, Fe)
+head(optL)
+
+
+#supraL day
+df9 <- read_csv("Fe_RL/RL_for_different_temps/supra_L_up_BP.csv")
+GO <- rep("BP", nrow(df9))
+df9 <- cbind(df9, GO)
+head(df9)
+
+df10 <- read_csv("Fe_RL/RL_for_different_temps/supra_L_up_MF.csv")
+GO <- rep("MF", nrow(df10))
+df10 <- cbind(df10, GO)
+head(df10)
+
+df11 <- read_csv("Fe_RL/RL_for_different_temps/supra_L_up_CC.csv")
+GO <- rep("CC", nrow(df11))
+df11 <- cbind(df11, GO)
+head(df11)
+
+df12 <- read_csv("Fe_RL/RL_for_different_temps/supra_L_up_KO.csv")
+GO <- rep("KO", nrow(df12))
+df12 <- cbind(df12, GO)
+head(df12)
+
+df_supraL <- rbind(df9, df10, df11, df12)
+head(df_supraL)
+diel <- rep("day", nrow(df_supraL))
+temp <- rep("32C", nrow(df_supraL))
+Fe <- rep("upregulated", nrow(df_supraL))
+supraL <- cbind(df_supraL, diel, temp, Fe)
+head(supraL)
+
+# df for day - limited upregulated (aka replete upregulated)
+df_temp_Lup <- rbind(subL, optL, supraL)
+  
+```
+
+
+```{r temp_dotplot, eval = TRUE, message = FALSE, warning = FALSE}
+
+#final dataframes that are compiled
+
+# THIS MIGHT BE WEIRD BECAUSE THERES DAY AND NIGHT 
+
+head(df_temp_Ldown)
+head(df_temp_Lup)
+
+df_tempRL <- rbind(df_temp_Ldown, df_temp_Lup)
+head(df_tempRL)
+tail(df_tempRL)
+dim(df_tempRL)
+
+df_tempRL$GO.Description <- paste(df_tempRL$Description, df_tempRL$ID, sep=' | ')  # generate new column with concatenated GO description and term
+head(df_tempRL)  
+tail(df_tempRL)  
+dim(df_tempRL)
+
+# this is where I would save the csv
+write.csv(df_tempRL, file="tempRL.csv", row.names = TRUE)
+
+# day
+head(df_tempRL)
+df <- filter(df_tempRL, diel == "day")
+head(df)
+
+df$GO.Description = forcats::fct_rev(factor(df$GO.Description)) #arrange terms in alphabetical order
+
+df
+dim(df)
+f <- df$GO
+fct_relevel(f)
+df$GO = fct_relevel(f, "MF", after = 1) #arrange terms in alphabetical order
+df$GO
+
+g <- df$Fe
+fct_relevel(g)
+df$Fe = fct_relevel(g, "upregulated", after = 1)
+df$Fe
+
+plot <- ggplot(df, aes(Fe, GO.Description, color = p.adjust)) + 
+  geom_point(aes(size = Count)) + facet_grid(GO ~ temp, scales = "free") + scale_color_gradient(low = "#282828", high = "#f5f5f5")
+
+plot
+
+plot <- plot + xlab("") + 
+  theme(panel.grid.major = element_line(colour = "lightgrey"), axis.text.y = element_text(colour = "black", size = 7),
+        axis.text.x = element_text(colour = "black", size = 7, angle = 45, vjust = 1, hjust = 1),
+        axis.title.y = element_blank(),
+        axis.title.x = element_text(face = "bold", size = 7),
+        panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 0.7), 
+        legend.title = element_blank(),
+        legend.text = element_text(colour = "black", size = 7, face = "bold"),
+        strip.text.y = element_text(size = 7, color = "black", face = "bold"),
+        strip.text.x = element_text(size = 7, color = "black", face = "bold"),
+        strip.background.y = element_rect(color = "black", fill = "#ededed", size = 0.5, linetype = "solid"), 
+        strip.background.x = element_rect(color = "white", fill = "white", size = 0.5, linetype = "solid"))
+
+plot
+
+ggsave("dotplots/L_dotplot_temperature.pdf", height = 30, width = 20, units = "cm", dpi=300)
+
+```
+
+### Day & Night Temperatures (vOpt: 22 v 27, 27 v 32)
+
+### Plotting after clusterProfilers
+
+```{r voptRep_df_up, eval = TRUE, message = FALSE, warning = FALSE}
+
+# This is for Replete, upregulated
+
+## Replete, day, upregulated, core
+
+df1 <- read_csv("vOpt/R_upregulated_core_BP.csv")
+head(df1)
+GO <- rep("BP", nrow(df1))
+df1 <- cbind(df1, GO)
+head(df1)
+
+df2 <- read_csv("vOpt/R_upregulated_core_MF.csv")
+head(df2)
+GO <- rep("MF", nrow(df2))
+df2 <- cbind(df2, GO)
+head(df2)
+
+df3 <- read_csv("vOpt/R_upregulated_core_CC.csv")
+head(df3)
+GO <- rep("CC", nrow(df3))
+df3 <- cbind(df3, GO)
+head(df3)
+
+df4 <- read_csv("vOpt/R_upregulated_core_KO.csv")
+head(df4)
+GO <- rep("KO", nrow(df4))
+df4 <- cbind(df4, GO)
+head(df4)
+
+df <- rbind(df1, df2, df3, df4)
+head(df)
+treatment <- rep("core", nrow(df))
+Rcore_up <- cbind(df, treatment)
+head(Rcore_up)
+
+## Replete, day, upregulated, 22
+
+df1 <- read_csv("vOpt/R_upregulated_22_BP.csv")
+head(df1)
+GO <- rep("BP", nrow(df1))
+df1 <- cbind(df1, GO)
+head(df1)
+
+df2 <- read_csv("vOpt/R_upregulated_22_MF.csv")
+head(df2)
+GO <- rep("MF", nrow(df2))
+df2 <- cbind(df2, GO)
+head(df2)
+
+df3 <- read_csv("vOpt/R_upregulated_22_CC.csv")
+head(df3)
+GO <- rep("CC", nrow(df3))
+df3 <- cbind(df3, GO)
+head(df3)
+
+df4 <- read_csv("vOpt/R_upregulated_22_KO.csv")
+head(df4)
+GO <- rep("KO", nrow(df4))
+df4 <- cbind(df4, GO)
+head(df4)
+
+df <- rbind(df1, df2, df3, df4)
+head(df)
+treatment <- rep("sub", nrow(df))
+Rsub_up <- cbind(df, treatment)
+head(Rsub_up)
+
+## Replete, day, upregulated, 32
+
+df1 <- read_csv("vOpt/R_upregulated_32_BP.csv")
+head(df1)
+GO <- rep("BP", nrow(df1))
+df1 <- cbind(df1, GO)
+head(df1)
+
+df2 <- read_csv("vOpt/R_upregulated_32_MF.csv")
+head(df2)
+GO <- rep("MF", nrow(df2))
+df2 <- cbind(df2, GO)
+head(df2)
+
+df3 <- read_csv("vOpt/R_upregulated_32_CC.csv")
+head(df3)
+GO <- rep("CC", nrow(df3))
+df3 <- cbind(df3, GO)
+head(df3)
+
+df4 <- read_csv("vOpt/R_upregulated_32_KO.csv")
+head(df4)
+GO <- rep("KO", nrow(df4))
+df4 <- cbind(df4, GO)
+head(df4)
+
+df <- rbind(df1, df2, df3, df4)
+head(df)
+treatment <- rep("supra", nrow(df))
+Rsupra_up <- cbind(df, treatment)
+head(Rsupra_up)
+
+## put together the Replete, day, upregulated
+
+Rday_up <- rbind(Rcore_up, Rsub_up, Rsupra_up)
+diel <- rep("day", nrow(Rday_up))
+reg <- rep("up", nrow(Rday_up))
+Rday_up <- cbind(Rday_up, diel, reg)
+head(Rday_up) # table 2
+```
+
+```{r voptRep_df_down, eval = TRUE, message = FALSE, warning = FALSE}
+
+# This is for Replete day, downregulated
+
+## Replete, day, downregulated, core
+
+df1 <- read_csv("vOpt/R_downregulated_core_BP.csv")
+head(df1)
+GO <- rep("BP", nrow(df1))
+df1 <- cbind(df1, GO)
+head(df1)
+
+df2 <- read_csv("vOpt/R_downregulated_core_MF.csv")
+head(df2)
+GO <- rep("MF", nrow(df2))
+df2 <- cbind(df2, GO)
+head(df2)
+
+df3 <- read_csv("vOpt/R_downregulated_core_CC.csv")
+head(df3)
+GO <- rep("CC", nrow(df3))
+df3 <- cbind(df3, GO)
+head(df3)
+
+df4 <- read_csv("vOpt/R_downregulated_core_KO.csv")
+head(df4)
+GO <- rep("KO", nrow(df4))
+df4 <- cbind(df4, GO)
+head(df4)
+
+df <- rbind(df1, df2, df3, df4)
+head(df)
+treatment <- rep("core", nrow(df))
+Rcore_down <- cbind(df, treatment)
+head(Rcore_down)
+
+## Replete, day, downregulated, 22
+
+df1 <- read_csv("vOpt/R_downregulated_22_BP.csv")
+head(df1)
+GO <- rep("BP", nrow(df1))
+df1 <- cbind(df1, GO)
+head(df1)
+
+df2 <- read_csv("vOpt/R_downregulated_22_MF.csv")
+head(df2)
+GO <- rep("MF", nrow(df2))
+df2 <- cbind(df2, GO)
+head(df2)
+
+df3 <- read_csv("vOpt/R_downregulated_22_CC.csv")
+head(df3)
+GO <- rep("CC", nrow(df3))
+df3 <- cbind(df3, GO)
+head(df3)
+
+df4 <- read_csv("vOpt/R_downregulated_22_KO.csv")
+head(df4)
+GO <- rep("KO", nrow(df4))
+df4 <- cbind(df4, GO)
+head(df4)
+
+df <- rbind(df1, df2, df3, df4)
+head(df)
+treatment <- rep("sub", nrow(df))
+Rsub_down <- cbind(df, treatment)
+head(Rsub_down)
+
+## Replete, day, downregulated, 32
+
+df1 <- read_csv("vOpt/R_downregulated_32_BP.csv")
+head(df1)
+GO <- rep("BP", nrow(df1))
+df1 <- cbind(df1, GO)
+head(df1)
+
+df2 <- read_csv("vOpt/R_downregulated_32_MF.csv")
+head(df2)
+GO <- rep("MF", nrow(df2))
+df2 <- cbind(df2, GO)
+head(df2)
+
+df3 <- read_csv("vOpt/R_downregulated_32_CC.csv")
+head(df3)
+GO <- rep("CC", nrow(df3))
+df3 <- cbind(df3, GO)
+head(df3)
+
+df4 <- read_csv("vOpt/R_downregulated_32_KO.csv")
+head(df4)
+GO <- rep("KO", nrow(df4))
+df4 <- cbind(df4, GO)
+head(df4)
+
+df <- rbind(df1, df2, df3, df4)
+head(df)
+treatment <- rep("supra", nrow(df))
+Rsupra_down <- cbind(df, treatment)
+head(Rsupra_down)
+
+## put together the Replete, day, downregulated
+
+Rday_down <- rbind(Rcore_down, Rsub_down, Rsupra_down)
+diel <- rep("day", nrow(Rday_down))
+reg <- rep("down", nrow(Rday_down))
+Rday_down <- cbind(Rday_down, diel, reg)
+head(Rday_down) # table 2
+```
+
+```{r voptRep_dotplot, eval = TRUE, message = FALSE, warning = FALSE}
+
+vrep_df <- rbind(Rday_up, Rday_down) 
+Fe <- rep("Replete", nrow(vrep_df))
+vrep_df <- cbind(vrep_df, Fe)
+head(vrep_df)
+tail(vrep_df)
+dim(vrep_df)
+
+vrep_df$GO.Description <- paste(vrep_df$Description, vrep_df$ID, sep=' | ')  # generate new column with concatenated GO description and term
+head(vrep_df)  
+tail(vrep_df)  
+dim(vrep_df)
+
+# day
+vrep <- dplyr::filter(vrep_df, diel == "day")
+head(vrep)
+vrep$treatment <- gsub("core", "both", vrep$treatment)
+head(vrep)
+vrep$treatment <- gsub("supra", "32C", vrep$treatment)
+vrep$treatment <- gsub("sub", "22C", vrep$treatment)
+head(vrep)
+tail(vrep)
+vrep$treatment
+
+write.csv(as.data.frame(vrep), 
+          file="vrep_dotplot_table.csv")
+
+# add a line for both and sub for up for plotting
+line1 <- dplyr::filter(vrep, Description == "signal transduction")
+colnames(line1)
+line1[1, 10] <- NA
+line1[1, 12] <- "32C"
+line1[1, 14] <- "down"
+line1
+line2 = line1
+line2[1, 12] <- "22C"
+line2[1, 14] <- "up"
+line2 
+
+vrep_plot <- rbind(line1, line2, vrep)
+head(vrep_plot)
+
+vrep_plot$GO.Description = forcats::fct_rev(factor(vrep_plot$GO.Description)) #arrange terms in alphabetical order
+vrep_plot
+dim(vrep_plot)
+f <- vrep_plot$GO
+fct_relevel(f)
+vrep_plot$GO = fct_relevel(f, "MF", after = 1) #arrange terms in alphabetical order
+vrep_plot$GO
+
+head(vrep_plot)
+
+level_order <- c('both', '22C', '32C') #this vector might be useful for other plots/analyses
+
+plot <- ggplot(vrep_plot, aes(x = factor(treatment, level = level_order), GO.Description, color = p.adjust)) + 
+  geom_point(aes(size = Count)) + facet_grid(GO ~ reg, scales = "free") + scale_color_gradient(low = "#282828", high = "#f5f5f5") 
+
+plot
+
+g <- vrep_plot$treatment
+fct_relevel(g)
+fct_relevel(g, "both", after = 0)
+vrep_plot$treatment = fct_relevel(g, "both", after = 0) #arrange terms in alphabetical order
+vrep_plot$treatment
+
+plot <- ggplot(vrep_plot, aes(x = factor(reg), GO.Description, color = p.adjust)) + 
+  geom_point(aes(size = Count)) + facet_grid(GO ~ treatment, scales = "free") + scale_color_gradient(low = "#282828", high = "#f5f5f5") 
+
+plot
+
+plot <- plot + xlab("") + 
+  theme(panel.grid.major = element_line(colour = "lightgrey"), axis.text.y = element_text(colour = "black", size = 7),
+        axis.text.x = element_text(colour = "black", size = 7, angle = 45, vjust = 1, hjust = 1),
+        axis.title.y = element_blank(),
+        axis.title.x = element_text(face = "bold", size = 7),
+        panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 0.7), 
+        legend.title = element_blank(),
+        legend.text = element_text(colour = "black", size = 7, face = "bold"),
+        strip.text.y = element_text(size = 7, color = "black", face = "bold"),
+        strip.text.x = element_text(size = 7, color = "black", face = "bold"),
+        strip.background.y = element_rect(color = "black", fill = "#ededed", size = 0.5, linetype = "solid"), 
+        strip.background.x = element_rect(color = "white", fill = "white", size = 0.5, linetype = "solid"))
+
+plot
+
+ggsave("dotplots/dotplot_enrich_voptRep_new.pdf", height = 30, width = 20, units = "cm", dpi=300)
+
+```
+
+
+```{r voptLim_df_up, eval = TRUE, message = FALSE, warning = FALSE}
+
+# This is for Limited day, upregulated
+
+## Limited, day, upregulated, core
+
+df1 <- read_csv("vOpt/L_upregulated_core_BP.csv")
+head(df1)
+GO <- rep("BP", nrow(df1))
+df1 <- cbind(df1, GO)
+head(df1)
+
+df2 <- read_csv("vOpt/L_upregulated_core_MF.csv")
+head(df2)
+GO <- rep("MF", nrow(df2))
+df2 <- cbind(df2, GO)
+head(df2)
+
+df3 <- read_csv("vOpt/L_upregulated_core_CC.csv")
+head(df3)
+GO <- rep("CC", nrow(df3))
+df3 <- cbind(df3, GO)
+head(df3)
+
+df4 <- read_csv("vOpt/L_upregulated_core_KO.csv")
+head(df4)
+GO <- rep("KO", nrow(df4))
+df4 <- cbind(df4, GO)
+head(df4)
+
+df <- rbind(df1, df2, df3, df4)
+head(df)
+treatment <- rep("core", nrow(df))
+Lcore_up <- cbind(df, treatment)
+head(Lcore_up)
+
+## Limited, day, upregulated, 22
+
+df1 <- read_csv("vOpt/L_upregulated_22_BP.csv")
+head(df1)
+GO <- rep("BP", nrow(df1))
+df1 <- cbind(df1, GO)
+head(df1)
+
+df2 <- read_csv("vOpt/L_upregulated_22_MF.csv")
+head(df2)
+GO <- rep("MF", nrow(df2))
+df2 <- cbind(df2, GO)
+head(df2)
+
+df3 <- read_csv("vOpt/L_upregulated_22_CC.csv")
+head(df3)
+GO <- rep("CC", nrow(df3))
+df3 <- cbind(df3, GO)
+head(df3)
+
+df4 <- read_csv("vOpt/L_upregulated_22_KO.csv")
+head(df4)
+GO <- rep("KO", nrow(df4))
+df4 <- cbind(df4, GO)
+head(df4)
+
+df <- rbind(df1, df2, df3, df4)
+head(df)
+treatment <- rep("sub", nrow(df))
+Lsub_up <- cbind(df, treatment)
+head(Lsub_up)
+
+## Limited, day, upregulated, 32
+
+df1 <- read_csv("vOpt/L_upregulated_32_BP.csv")
+head(df1)
+GO <- rep("BP", nrow(df1))
+df1 <- cbind(df1, GO)
+head(df1)
+
+df2 <- read_csv("vOpt/L_upregulated_32_MF.csv")
+head(df2)
+GO <- rep("MF", nrow(df2))
+df2 <- cbind(df2, GO)
+head(df2)
+
+df3 <- read_csv("vOpt/L_upregulated_32_CC.csv")
+head(df3)
+GO <- rep("CC", nrow(df3))
+df3 <- cbind(df3, GO)
+head(df3)
+
+df4 <- read_csv("vOpt/L_upregulated_32_KO.csv")
+head(df4)
+GO <- rep("KO", nrow(df4))
+df4 <- cbind(df4, GO)
+head(df4)
+
+df <- rbind(df1, df2, df3, df4)
+head(df)
+treatment <- rep("supra", nrow(df))
+Lsupra_up <- cbind(df, treatment)
+head(Lsupra_up)
+
+## put together the Limited, day, upregulated
+
+Lday_up <- rbind(Lcore_up, Lsub_up, Lsupra_up)
+diel <- rep("day", nrow(Lday_up))
+reg <- rep("up", nrow(Lday_up))
+Lday_up <- cbind(Lday_up, diel, reg)
+head(Lday_up) # table 2
+```
+
+```{r voptLim_df_down, eval = TRUE, message = FALSE, warning = FALSE}
+
+# This is for Limited day, downregulated
+
+## Limited, day, downregulated, core
+
+df1 <- read_csv("vOpt/L_downregulated_core_BP.csv")
+head(df1)
+GO <- rep("BP", nrow(df1))
+df1 <- cbind(df1, GO)
+head(df1)
+
+df2 <- read_csv("vOpt/L_downregulated_core_MF.csv")
+head(df2)
+GO <- rep("MF", nrow(df2))
+df2 <- cbind(df2, GO)
+head(df2)
+
+df3 <- read_csv("vOpt/L_downregulated_core_CC.csv")
+head(df3)
+GO <- rep("CC", nrow(df3))
+df3 <- cbind(df3, GO)
+head(df3)
+
+df4 <- read_csv("vOpt/L_downregulated_core_KO.csv")
+head(df4)
+GO <- rep("KO", nrow(df4))
+df4 <- cbind(df4, GO)
+head(df4)
+
+df <- rbind(df1, df2, df3, df4)
+head(df)
+treatment <- rep("core", nrow(df))
+Lcore_down <- cbind(df, treatment)
+head(Lcore_down)
+
+## Limited, day, downregulated, 22
+
+df1 <- read_csv("vOpt/L_downregulated_22_BP.csv")
+head(df1)
+GO <- rep("BP", nrow(df1))
+df1 <- cbind(df1, GO)
+head(df1)
+
+df2 <- read_csv("vOpt/L_downregulated_22_MF.csv")
+head(df2)
+GO <- rep("MF", nrow(df2))
+df2 <- cbind(df2, GO)
+head(df2)
+
+df3 <- read_csv("vOpt/L_downregulated_22_CC.csv")
+head(df3)
+GO <- rep("CC", nrow(df3))
+df3 <- cbind(df3, GO)
+head(df3)
+
+df4 <- read_csv("vOpt/L_downregulated_22_KO.csv")
+head(df4)
+GO <- rep("KO", nrow(df4))
+df4 <- cbind(df4, GO)
+head(df4)
+
+df <- rbind(df1, df2, df3, df4)
+head(df)
+treatment <- rep("sub", nrow(df))
+Lsub_down <- cbind(df, treatment)
+head(Lsub_down)
+
+## Limited, day, downregulated, 32
+
+df1 <- read_csv("vOpt/L_downregulated_32_BP.csv")
+head(df1)
+GO <- rep("BP", nrow(df1))
+df1 <- cbind(df1, GO)
+head(df1)
+
+df2 <- read_csv("vOpt/L_downregulated_32_MF.csv")
+head(df2)
+GO <- rep("MF", nrow(df2))
+df2 <- cbind(df2, GO)
+head(df2)
+
+df3 <- read_csv("vOpt/L_downregulated_32_CC.csv")
+head(df3)
+GO <- rep("CC", nrow(df3))
+df3 <- cbind(df3, GO)
+head(df3)
+
+df4 <- read_csv("vOpt/L_downregulated_32_KO.csv")
+head(df4)
+GO <- rep("KO", nrow(df4))
+df4 <- cbind(df4, GO)
+head(df4)
+
+df <- rbind(df1, df2, df3, df4)
+head(df)
+treatment <- rep("supra", nrow(df))
+Lsupra_down <- cbind(df, treatment)
+head(Lsupra_down)
+
+## put together the Limited, day, downregulated
+
+Lday_down <- rbind(Lcore_down, Lsub_down, Lsupra_down)
+diel <- rep("day", nrow(Lday_down))
+reg <- rep("down", nrow(Lday_down))
+Lday_down <- cbind(Lday_down, diel, reg)
+head(Lday_down) # table 2
+```
+
+```{r voptLim_dotplot, eval = TRUE, message = FALSE, warning = FALSE}
+
+# vlim_df <- rbind(Lnight_up, Lnight_down, Lday_up, Lday_down) 
+vlim_df <- rbind(Lday_up, Lday_down) 
+Fe <- rep("Limited", nrow(vlim_df))
+vlim_df <- cbind(vlim_df, Fe)
+head(vlim_df)
+tail(vlim_df)
+dim(vlim_df)
+
+vlim_df$GO.Description <- paste(vlim_df$Description, vlim_df$ID, sep=' | ')  # generate new column with concatenated GO description and term
+head(vlim_df)  
+tail(vlim_df)  
+dim(vlim_df)
+
+# day
+vlim <- dplyr::filter(vlim_df, diel == "day")
+head(vlim)
+vlim$treatment <- gsub("core", "both", vlim$treatment)
+head(vlim)
+vlim$treatment <- gsub("supra", "32C", vlim$treatment)
+vlim$treatment <- gsub("sub", "22C", vlim$treatment)
+head(vlim)
+tail(vlim)
+vlim$treatment
+
+write.csv(as.data.frame(vlim), 
+          file="vlim_dotplot_table.csv")
+
+# add a line for both and sub for up for plotting
+line1 <- dplyr::filter(vlim, Description == "signal transduction")
+colnames(line1)
+line1[1, 10] <- NA
+line1[1, 12] <- "32C"
+line1[1, 14] <- "down"
+line1
+line2 = line1
+line2[1, 12] <- "22C"
+line2[1, 14] <- "up"
+line2 
+
+vlim_plot <- rbind(line1, line2, vlim)
+head(vlim_plot)
+
+vlim_plot$GO.Description = forcats::fct_rev(factor(vlim_plot$GO.Description)) #arrange terms in alphabetical order
+vlim_plot
+dim(vlim_plot)
+f <- vlim_plot$GO
+fct_relevel(f)
+vlim_plot$GO = fct_relevel(f, "MF", after = 1) #arrange terms in alphabetical order
+vlim_plot$GO
+
+head(vlim_plot)
+
+level_order <- c('both', '22C', '32C') #this vector might be useful for other plots/analyses
+
+plot <- ggplot(vlim_plot, aes(x = factor(treatment, level = level_order), GO.Description, color = p.adjust)) + 
+  geom_point(aes(size = Count)) + facet_grid(GO ~ reg, scales = "free") + scale_color_gradient(low = "#282828", high = "#f5f5f5") 
+
+plot
+
+g <- vlim_plot$treatment
+fct_relevel(g)
+fct_relevel(g, "both", after = 0)
+vlim_plot$treatment = fct_relevel(g, "both", after = 0) #arrange terms in alphabetical order
+vlim_plot$treatment
+
+plot <- ggplot(vlim_plot, aes(x = factor(reg), GO.Description, color = p.adjust)) + 
+  geom_point(aes(size = Count)) + facet_grid(GO ~ treatment, scales = "free") + scale_color_gradient(low = "#282828", high = "#f5f5f5") 
+
+plot
+
+plot <- plot + xlab("") + 
+  theme(panel.grid.major = element_line(colour = "lightgrey"), axis.text.y = element_text(colour = "black", size = 7),
+        axis.text.x = element_text(colour = "black", size = 7, angle = 45, vjust = 1, hjust = 1),
+        axis.title.y = element_blank(),
+        axis.title.x = element_text(face = "bold", size = 7),
+        panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 0.7), 
+        legend.title = element_blank(),
+        legend.text = element_text(colour = "black", size = 7, face = "bold"),
+        strip.text.y = element_text(size = 7, color = "black", face = "bold"),
+        strip.text.x = element_text(size = 7, color = "black", face = "bold"),
+        strip.background.y = element_rect(color = "black", fill = "#ededed", size = 0.5, linetype = "solid"), 
+        strip.background.x = element_rect(color = "white", fill = "white", size = 0.5, linetype = "solid"))
+
+plot
+
+ggsave("dotplots/dotplot_enrich_voptLim_new.pdf", height = 28, width = 20, units = "cm", dpi=300)
+
+```
+
+### Temperatures (22 v 32) 
+
+### Plotting after clusterProfilers
+ # not really sure what these files are 
+```{r 22v32, eval = TRUE, message = FALSE, warning = FALSE}
+
+# This is for 22 v 32 Replete Day down
+
+df1 <- read_csv("22v32/R22vR32_down_BP.csv")
+head(df1)
+GO <- rep("BP", nrow(df1))
+df1 <- cbind(df1, GO)
+head(df1)
+
+df2 <- read_csv("22v32/R22vR32_down_MF.csv")
+head(df2)
+GO <- rep("MF", nrow(df2))
+df2 <- cbind(df2, GO)
+head(df2)
+
+df3 <- read_csv("22v32/R22vR32_down_CC.csv")
+head(df3)
+GO <- rep("CC", nrow(df3))
+df3 <- cbind(df3, GO)
+head(df3)
+
+df4 <- read_csv("22v32/R22vR32_down_KO.csv")
+head(df4)
+GO <- rep("KO", nrow(df4))
+df4 <- cbind(df4, GO)
+head(df4)
+
+# add up, down, day, night, replete, limited
+df <- rbind(df1, df2, df3, df4)
+head(df)
+treatment <- rep("replete", nrow(df))
+reg <- rep("down", nrow(df))
+diel <- rep("day", nrow(df))
+
+Rday_down <- cbind(df, treatment, reg, diel)
+head(Rday_down)
+
+
+# This is for 22 v 32 Replete Day up
+
+df1 <- read_csv("22v32/R22vR32_up_BP.csv")
+head(df1)
+GO <- rep("BP", nrow(df1))
+df1 <- cbind(df1, GO)
+head(df1)
+
+df2 <- read_csv("22v32/R22vR32_up_MF.csv")
+head(df2)
+GO <- rep("MF", nrow(df2))
+df2 <- cbind(df2, GO)
+head(df2)
+
+df3 <- read_csv("22v32/R22vR32_up_CC.csv")
+head(df3)
+GO <- rep("CC", nrow(df3))
+df3 <- cbind(df3, GO)
+head(df3)
+
+df4 <- read_csv("22v32/R22vR32_up_KO.csv")
+head(df4)
+GO <- rep("KO", nrow(df4))
+df4 <- cbind(df4, GO)
+head(df4)
+
+# add up, down, day, night, replete, limited
+df <- rbind(df1, df2, df3, df4)
+head(df)
+treatment <- rep("replete", nrow(df))
+reg <- rep("up", nrow(df))
+diel <- rep("day", nrow(df))
+
+Rday_up <- cbind(df, treatment, reg, diel)
+head(Rday_up)
+
+
+# This is for 22 v 32 Limited Day up
+
+df1 <- read_csv("22v32/L22vL32_up_BP.csv")
+head(df1)
+GO <- rep("BP", nrow(df1))
+df1 <- cbind(df1, GO)
+head(df1)
+
+df2 <- read_csv("22v32/L22vL32_up_MF.csv")
+head(df2)
+GO <- rep("MF", nrow(df2))
+df2 <- cbind(df2, GO)
+head(df2)
+
+df3 <- read_csv("22v32/L22vL32_up_CC.csv")
+head(df3)
+GO <- rep("CC", nrow(df3))
+df3 <- cbind(df3, GO)
+head(df3)
+
+df4 <- read_csv("22v32/L22vL32_up_KO.csv")
+head(df4)
+GO <- rep("KO", nrow(df4))
+df4 <- cbind(df4, GO)
+head(df4)
+
+# add up, down, day, night, replete, limited
+df <- rbind(df1, df2, df3, df4)
+head(df)
+treatment <- rep("limited", nrow(df))
+reg <- rep("up", nrow(df))
+diel <- rep("day", nrow(df))
+
+Lday_up <- cbind(df, treatment, reg, diel)
+head(Lday_up)
+
+
+# This is for 22 v 32 Limited Day down
+
+df1 <- read_csv("22v32/L22vL32_down_BP.csv")
+head(df1)
+GO <- rep("BP", nrow(df1))
+df1 <- cbind(df1, GO)
+head(df1)
+
+df2 <- read_csv("22v32/L22vL32_down_MF.csv")
+head(df2)
+GO <- rep("MF", nrow(df2))
+df2 <- cbind(df2, GO)
+head(df2)
+
+df3 <- read_csv("22v32/L22vL32_down_CC.csv")
+head(df3)
+GO <- rep("CC", nrow(df3))
+df3 <- cbind(df3, GO)
+head(df3)
+
+df4 <- read_csv("22v32/L22vL32_down_KO.csv")
+head(df4)
+GO <- rep("KO", nrow(df4))
+df4 <- cbind(df4, GO)
+head(df4)
+
+# add up, down, day, night, replete, limited
+df <- rbind(df1, df2, df3, df4)
+head(df)
+treatment <- rep("limited", nrow(df))
+reg <- rep("down", nrow(df))
+diel <- rep("day", nrow(df))
+
+Lday_down <- cbind(df, treatment, reg, diel)
+head(Lday_down)
+
+```
+
+
+```{r 22v32_dotplot, eval = TRUE, message = FALSE, warning = FALSE}
+
+df <- rbind(Rday_up, Rday_down, Lday_up, Lday_down) 
+head(df)
+colnames(df)
+colnames(df)[12] <- "Fe"
+head(df)
+df$reg <- gsub("up", "22C", df$reg) # replace "up" with 22C indicating upregulation for 22C
+head(df)
+df$reg <- gsub("down", "32C", df$reg) # replace "down" with 32C indicating upregulation for 32C
+head(df)
+tail(df)
+dim(df) # 69 x 14 
+
+df$GO.Description <- paste(df$Description, df$ID, sep=' | ')  # generate new column with concatenated GO description and term
+head(df)  
+tail(df)  
+dim(df)
+write.csv(df, file="22v32/summary_of_22v32.csv")
+
+
+# day
+head(df)
+df_rep <- filter(df, Fe == "replete")
+head(df_rep)
+df_lim <- filter(df, Fe == "limited")
+head(df_lim)
+
+df_rep$GO.Description = forcats::fct_rev(factor(df_rep$GO.Description)) #arrange terms in alphabetical order
+
+df_lim$GO.Description = forcats::fct_rev(factor(df_lim$GO.Description)) #arrange terms in alphabetical order
+
+df_rep
+dim(df_rep) # 48 x 15
+f <- df_rep$GO
+fct_relevel(f) # lists out BP, MF, CC, KO, etc
+fct_relevel(f, "MF", after = 1)
+df_rep$GO = fct_relevel(f, "MF", after = 1) #arrange terms in alphabetical order
+df_rep$GO
+
+plot <- ggplot(df_rep, aes(reg, GO.Description, color = p.adjust)) + 
+  geom_point(aes(size = Count)) + facet_grid(GO ~ diel, scales = "free") + scale_color_gradient(low = "#282828", high = "#f5f5f5")
+
+plot
+
+plot <- plot + xlab("") + 
+  theme(panel.grid.major = element_line(colour = "lightgrey"), axis.text.y = element_text(colour = "black", size = 7),
+        axis.text.x = element_text(colour = "black", size = 7, angle = 45, vjust = 1, hjust = 1),
+        axis.title.y = element_blank(),
+        axis.title.x = element_text(face = "bold", size = 7),
+        panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 0.7), 
+        legend.title = element_blank(),
+        legend.text = element_text(colour = "black", size = 7, face = "bold"),
+        strip.text.y = element_text(size = 7, color = "black", face = "bold"),
+        strip.text.x = element_text(size = 7, color = "black", face = "bold"),
+        strip.background.y = element_rect(color = "black", fill = "#ededed", size = 0.5, linetype = "solid"), 
+        strip.background.x = element_rect(color = "white", fill = "white", size = 0.5, linetype = "solid"))
+
+plot
+
+ggsave("dotplots/dotplot_enrich_22v32_rep.pdf", height = 30, width = 15, units = "cm", dpi=300)
+
+
+df_lim
+dim(df_lim)
+f <- df_lim$GO
+fct_relevel(f)
+fct_relevel(f, "MF", after = 1)
+df_lim$GO = fct_relevel(f, "MF", after = 1) #arrange terms in alphabetical order
+df_lim$GO
+
+plot <- ggplot(df_lim, aes(reg, GO.Description, color = p.adjust)) + 
+  geom_point(aes(size = Count)) + facet_grid(GO ~ diel, scales = "free") + scale_color_gradient(low = "#282828", high = "#f5f5f5")
+
+plot
+
+plot <- plot + xlab("") + 
+  theme(panel.grid.major = element_line(colour = "lightgrey"), axis.text.y = element_text(colour = "black", size = 7),
+        axis.text.x = element_text(colour = "black", size = 7, angle = 45, vjust = 1, hjust = 1),
+        axis.title.y = element_blank(),
+        axis.title.x = element_text(face = "bold", size = 7),
+        panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 0.7), 
+        legend.title = element_blank(),
+        legend.text = element_text(colour = "black", size = 7, face = "bold"),
+        strip.text.y = element_text(size = 7, color = "black", face = "bold"),
+        strip.text.x = element_text(size = 7, color = "black", face = "bold"),
+        strip.background.y = element_rect(color = "black", fill = "#ededed", size = 0.5, linetype = "solid"), 
+        strip.background.x = element_rect(color = "white", fill = "white", size = 0.5, linetype = "solid"))
+
+plot
+
+ggsave("dotplots/dotplot_enrich_22v32_lim.pdf", height = 30, width = 15, units = "cm", dpi=300)
+```
+
+# left off here
+```{r 22v32_inputs_heatmaps, eval = TRUE, message = FALSE, warning = FALSE}
+
+head(df_rep)
+tail(df_rep)
+head(df_lim)
+tail(df_lim)
+
+# df_lim <- filter(df_lim, diel == "day")
+head(df_lim)
+tail(df_lim)
+dim(df_lim)
+df_lim$GO.Description
+# df_lim_night <- filter(df_lim, diel == "night")
+# dim(df_lim_night)
+
+# I want to convert geneID to KEGG ID. That means I need to convert all these into a list.
+
+# Limited - Day
+head(df_lim)
+colnames(df_lim)
+splitted <- strsplit(as.character(df_lim$geneID), "/") # split into multiple GO ids
+head(splitted)
+df_lim_splitted <- data.frame(v1 = rep.int(c(df_lim$GO.Description), sapply(splitted, length)), v2 = unlist(splitted)) # list all genes with each of their GO terms in a single row
+head(df_lim_splitted)
+tail(df_lim_splitted)
+colnames(df_lim_splitted) <- c("GO", "gene_id")
+head(df_lim_splitted)
+dim(df_lim_splitted)
+
+
+
+# Replete - Day
+splitted <- strsplit(as.character(df_rep$geneID), "/") # split into multiple GO ids
+head(splitted)
+df_rep_splitted <- data.frame(v1 = rep.int(c(df_rep$GO.Description), sapply(splitted, length)), v2 = unlist(splitted)) # list all genes with each of their GO terms in a single row
+head(df_rep_splitted)
+tail(df_rep_splitted)
+colnames(df_rep_splitted) <- c("GO", "gene_id")
+head(df_rep_splitted)
+dim(df_rep_splitted)
+
+# datasets
+df_lim_splitted
+# df_lim_night_splitted
+df_rep_splitted
+
+# Now, I want to match back the gene_id with a KEGG identifier for these dataframes
+kegg <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/compile/filtered_tricho_kofamscan.csv", col_names = TRUE)
+dim(kegg)
+head(kegg)
+tail(kegg)
+dim(kegg)
+kegg <- kegg[, c(1:3)] # extracting gene_id and gene name (combined kegg and genome_id)
+head(kegg)
+dim(kegg)
+kegg$gene_id
+
+
+## I want to add in the gene count data (normalized by DESeq2 for plotting)
+
+cts <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/deseq2/tricho_trimmed_forDESeq2.csv")
+gene_id <- cts[c(1:2)] # extract gene_id to add to the other dataframes because this number was left off. The numeric ordering of these files is the same as the input file which has gene_id as well.
+head(gene_id)
+tail(gene_id)
+dim(gene_id)
+
+counts <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/deseq2/tricho_normcounts_forDGE.csv")
+head(counts)
+dim(counts)
+counts_df <- left_join(gene_id, counts, by = "...1")
+head(counts_df)
+dim(counts_df)
+counts_df <- counts_df[, 2:20]
+head(counts_df)
+tail(counts_df)
+dim(counts_df)
+counts_df$gene_id
+
+# calculate mean values for each treatment
+mean.L22 <- as.numeric(rowMeans(counts[, 2:4]))
+mean.R22 <- as.numeric(rowMeans(counts[, 5:7]))
+mean.L27 <- as.numeric(rowMeans(counts[, 8:10]))
+mean.R27 <- as.numeric(rowMeans(counts[, 11:13]))
+mean.L32 <- as.numeric(rowMeans(counts[, 14:16]))
+mean.R32 <- as.numeric(rowMeans(counts[, 17:19]))
+
+# create a dataframe only with rowmeans based on treatment
+mean_df <- as.data.frame(cbind(mean.L22, mean.R22, mean.L27, mean.R27, mean.L32, mean.R32))
+colnames(mean_df)
+summary(mean_df)
+genes.GO <- cbind(counts_df, mean_df)
+names(genes.GO)
+head(genes.GO)
+dim(genes.GO)
+colnames(genes.GO)
+head(genes.GO)
+tail(genes.GO)
+
+## write this as a csv for future use in plotting
+
+write.csv(as.data.frame(genes.GO),
+          file="/Users/kylakelly/Documents/USC/research/seq/tricho/deseq2/normalized_counts_means_forvisuals.csv")
+
+gene_cts <- read_csv("/Users/kylakelly/Documents/USC/research/seq/tricho/deseq2/normalized_counts_means_forvisuals.csv")
+head(gene_cts)
+colnames(gene_cts)
+gene_cts <- gene_cts[, 2:26]
+
+```
+
+```{r 22v32_LD_heatmaps, eval = TRUE, message = FALSE, warning = FALSE}
+setwd("/Users/kylakelly/Documents/USC/research/seq/tricho/heatmaps/")
+
+head(df_lim_splitted)
+head(gene_cts)
+
+enriched_df <- left_join(df_lim_splitted, gene_cts, "gene_id")
+dim(enriched_df)
+head(enriched_df)
+colnames(enriched_df)
+
+# This datafile could help identify the genes in each category
+# dd_gene_id <- ddply(enriched_counts,"gene_id",numcolwise(sum))
+# dim(dd_gene_id)
+
+#colnames(dd_gene_id)
+#colnames(enriched_counts)
+
+# gene_df <- left_join(dd_gene_id[, c(1, 38:49)], enriched_counts[, c(1:2, 4)], by = "gene_id")
+# head(gene_df)
+# dim(gene_df)
+
+# write.csv(gene_df, file = "/users/ninayang/Documents/Hutchins_Lab/Exp_Croco_Fewarming/fewarm_pub/df_lim_22LDv32LD.csv")
+
+# I want to combine like ids (GO) and then sum all relevant genes
+dd_enriched <- ddply(enriched_df,"GO",numcolwise(sum))
+head(dd_enriched, 10)
+dim(dd_enriched)
+colnames(dd_enriched)
+dd_enriched <- dd_enriched[, c(1, 20,22,24)]
+head(dd_enriched)
+colnames(dd_enriched) <- c("GO", "L22", "L27", "L32")
+head(dd_enriched)
+tail(dd_enriched)
+
+htmp <- column_to_rownames(dd_enriched, var = "GO") # set rownames as gene_id
+head(htmp)
+
+matrix <- as.matrix(htmp)
+head(matrix)
+
+# scale matrix
+cal_z_score <- function(x){
+  (x - mean(x)) / sd(x)
+}
+
+matrix_norm <- t(apply(matrix, 1, cal_z_score))
+head(matrix_norm)
+
+my_sample_col <- data.frame(Diel = rep(c("Day", "Day", "Day")))
+
+row.names(my_sample_col) <- colnames(matrix_norm)
+
+ann_colors = list(
+  Temperature = c("22" = "#350498FF", "27"= "#B93289FF", "32" = "#FBA139FF"),
+  Diel = c("Day" = "#e6e6e6"))
+
+col_vector <- c("L22", "L27", "L32")
+
+col_fun = colorRamp2(c(-1, 0, 1), c("#0570ff", "white", "#ff756b"))
+col_fun(seq(-3, 3))
+
+# day
+resource <- data.frame(NA)
+
+resource[c(1:4), 1] <- list("nitrogen")
+resource[c(5:7), 1] <- list("carbon")
+resource[c(8:9), 1] <- list("both")
+resource
+
+# what is the carbon, nitrogen both business
+# I just hashed it out for now 
+ha = rowAnnotation(
+    resource = resource$NA.,
+    col = list(resource = c("both" = "#66c2a5", "nitrogen" = "#8da0cb", "carbon" = "#fc8d62")),
+    simple_anno_size = unit(4, "mm"))
+
+ht.overlap <- ComplexHeatmap::Heatmap(matrix_norm, column_title = NULL,
+                              column_title_gp = gpar(fontsize = 10, fontface = "bold"),
+                              row_km = 2, row_km_repeats = 1000,
+                              col = col_fun,
+                              column_order = col_vector,
+                              #right_annotation = ha,
+                              rect_gp = gpar(col = "black", lwd = 0.5),
+                              heatmap_legend_param = list(title = "Z-score", direction = "horizontal"),
+                              row_names_side = "right", row_dend_side = "left",
+                              width = unit(20, "mm"), height = unit(70, "mm"),
+                              top_annotation = HeatmapAnnotation(df = my_sample_col, col = ann_colors,
+                                                                 show_annotation_name = TRUE, show_legend = c(TRUE),
+                                                                 annotation_name_gp= gpar(fontsize = 8)),
+                              column_dend_height = unit(0.5, "in"),
+                              row_gap = unit(2, "mm"), border = TRUE, column_gap = unit(2, "mm"),
+                              border_gp = gpar(col = "black", lwd = 1),
+                              column_names_gp =  gpar(fontsize = 8),
+                              row_names_gp = gpar(fontsize = 10, alpha = 1, fontface = "plain",
+                                                  border = FALSE, col = "black"))
+
+draw(ht.overlap, annotation_legend_side = "left", heatmap_legend_side = "bottom")
+
+pdf(file = "L22vL32_heatmap_figure.pdf", height = 5, width = 8)
+
+draw(ht.overlap, annotation_legend_side = "left", heatmap_legend_side = "bottom")
+
+dev.off()
+```
+
+# I think I need to make a replete day, becasue nina didn't have any more some reason 
+# I'm not 100% sure this is correct, but i think it is  
+```{r 22v32_RN_heatmaps, eval = TRUE, message = FALSE, warning = FALSE}
+setwd("/Users/kylakelly/Documents/USC/research/seq/tricho/heatmaps/")
+
+#### R22 vs 32RN
+head(df_rep_splitted)
+head(gene_cts)
+
+enriched_df <- left_join(df_rep_splitted, gene_cts, "gene_id")
+dim(enriched_df)
+head(enriched_df)
+colnames(enriched_df)
+
+# I want to combine like ids (GO) and then sum all relevant genes
+
+dd_enriched <- ddply(enriched_df,"GO",numcolwise(sum))
+head(dd_enriched, 10)
+colnames(dd_enriched)
+dd_enriched <- dd_enriched[, c(1, 21, 23, 25)] 
+head(dd_enriched)
+colnames(dd_enriched) <- c("GO", "R22", "R27", "R32")
+head(dd_enriched)
+
+htmp <- column_to_rownames(dd_enriched, var = "GO") # set rownames as gene_id
+head(htmp)
+
+matrix <- as.matrix(htmp)
+head(matrix)
+
+# scale matrix
+cal_z_score <- function(x){
+  (x - mean(x)) / sd(x)
+}
+
+matrix_norm <- t(apply(matrix, 1, cal_z_score))
+head(matrix_norm)
+
+my_sample_col <- data.frame(Diel = rep(c("Day", "Day", "Day")))
+
+row.names(my_sample_col) <- colnames(matrix_norm)
+ 
+ann_colors = list(
+  Temperature = c("22" = "#350498FF" , "27"= "#B93289FF", "32" = "#FBA139FF"),
+  Diel = c("Day" = "#000000"))
+
+col_vector <- c("R22", "R27", "R32")
+
+col_fun = colorRamp2(c(-1, 0, 1), c("#0570ff", "white", "#ff756b"))
+
+
+#"#355eff", "#ffffff", "#FF355E"
+col_fun(seq(-3, 3))
+
+
+matrix_norm
+
+resource <- data.frame(NA)
+
+resource[c(1, 5), 1] <- list("carbon")
+resource[c(2, 6), 1] <- list("nitrogen")
+resource[c(3, 4), 1] <- list("both")
+
+resource
+
+ha = rowAnnotation(resource = resource$NA.,
+    col = list(resource = c("both" = "#66c2a5", "nitrogen" = "#8da0cb", "carbon" = "#fc8d62")),
+    simple_anno_size = unit(4, "mm"))
+
+ht.overlap <- ComplexHeatmap::Heatmap(matrix_norm, column_title = NULL,
+                              column_title_gp = gpar(fontsize = 10, fontface = "bold"),
+                              row_km = 3, row_km_repeats = 1000,
+                              col = col_fun,
+                              column_order = col_vector,
+                             # right_annotation = ha,
+                              rect_gp = gpar(col = "black", lwd = 0.5),
+                              heatmap_legend_param = list(title = "Z-score", direction = "horizontal"),
+                              row_names_side = "right", row_dend_side = "left",
+                              width = unit(20, "mm"), height = unit(100, "mm"),
+                              top_annotation = HeatmapAnnotation(df = my_sample_col, col = ann_colors,
+                                                                 show_annotation_name = TRUE, show_legend = c(TRUE),
+                                                                 annotation_name_gp= gpar(fontsize = 8)),
+                              column_dend_height = unit(0.5, "in"),
+                              row_gap = unit(2, "mm"), border = TRUE, column_gap = unit(2, "mm"),
+                              border_gp = gpar(col = "black", lwd = 1),
+                              column_names_gp =  gpar(fontsize = 8),
+                              row_names_gp = gpar(fontsize = 5, alpha = 1, fontface = "plain",
+                                                  border = FALSE, col = "black"))
+
+draw(ht.overlap, annotation_legend_side = "left", heatmap_legend_side = "bottom")
+
+pdf(file = "R22vR32_heatmap_figure.pdf", height = 5, width = 8)
+
+draw(ht.overlap, annotation_legend_side = "left", heatmap_legend_side = "bottom")
+
+dev.off()
+
+```
+
+# maybe can skip this one becaue i dont need it all
+```{r 22v32_L_all_heatmaps, eval = TRUE, message = FALSE, warning = FALSE}
+setwd("/Users/kylakelly/Documents/USC/research/seq/tricho/heatmaps/")
+
+### all 22 v 32 limited
+head(df_lim)
+colnames(df_lim)
+splitted <- strsplit(as.character(df_lim$geneID), "/") # split into multiple GO ids
+head(splitted)
+df_lim_splitted <- data.frame(v1 = rep.int(c(df_lim$GO.Description), sapply(splitted, length)), v2 = unlist(splitted)) # list all genes with each of their GO terms in a single row
+head(df_lim_splitted)
+tail(df_lim_splitted)
+colnames(df_lim_splitted) <- c("GO", "gene_id")
+head(df_lim_splitted)
+dim(df_lim_splitted)
+head(df_lim_splitted)
+head(gene_cts)
+
+enriched_df <- left_join(df_lim_splitted, gene_cts, "gene_id")
+dim(enriched_df)
+head(enriched_df)
+colnames(enriched_df)
+
+# I want to combine like ids (GO) and then sum all relevant genes
+
+dd_enriched <- ddply(enriched_df,"GO",numcolwise(sum))
+head(dd_enriched, 10)
+colnames(dd_enriched)
+dd_enriched <- dd_enriched[, c(1, 20:25)]
+head(dd_enriched)
+colnames(dd_enriched) <- c("GO", "L22", "R22", "L27", "R27", "L32", "R32")
+head(dd_enriched)
+
+htmp <- column_to_rownames(dd_enriched, var = "GO") # set rownames as gene_id
+head(htmp)
+
+matrix <- as.matrix(htmp)
+head(matrix)
+
+# scale matrix
+cal_z_score <- function(x){
+  (x - mean(x)) / sd(x)
+}
+
+matrix_norm <- t(apply(matrix, 1, cal_z_score))
+head(matrix_norm)
+
+my_sample_col1 <- data.frame(Temperature = rep(c("22", "22", "27", "27", "32", "32")))
+
+my_sample_col2 <- data.frame(Fe = rep(c("Limited", "Replete")))
+
+my_sample_col_final <- cbind(my_sample_col1, my_sample_col2)
+
+row.names(my_sample_col_final) <- colnames(matrix_norm)
+
+ann_colors = list(
+  Temperature = c("22" = "#350498FF", "27"= "#B93289FF", "32" = "#FBA139FF"),
+  Fe = c("Limited" = "#e6e6e6", "Replete" = "#000000"))
+
+col_vector <- c("L22", "R22", "L27", "R27", "L32", "R32")
+
+col_fun = colorRamp2(c(-1, 0, 1), c("#0570ff", "white", "#ff756b"))
+
+col_fun(seq(-3, 3))
+
+matrix_norm
+
+resource <- data.frame(NA)
+
+resource[c(2, 6:11, 13, 17 ), 1] <- list("carbon")
+resource[c(1, 3:5, 12, 15, 18), 1] <- list("nitrogen")
+resource[c(14, 16, 19), 1] <- list("both")
+
+resource
+
+ha = rowAnnotation(resource = resource$NA.,
+    col = list(resource = c("both" = "#66c2a5", "nitrogen" = "#8da0cb", "carbon" = "#fc8d62")),
+    simple_anno_size = unit(4, "mm"))
+
+ht.overlap <- ComplexHeatmap::Heatmap(matrix_norm, column_title = NULL,
+                              column_title_gp = gpar(fontsize = 10, fontface = "bold"),
+                              row_km = 5, row_km_repeats = 1000,
+                              col = col_fun,
+                              column_order = col_vector,
+                             # right_annotation = ha,
+                              rect_gp = gpar(col = "black", lwd = 0.5),
+                              heatmap_legend_param = list(title = "Z-score", direction = "horizontal"),
+                              row_names_side = "right", row_dend_side = "left",
+                              width = unit(20, "mm"), height = unit(80, "mm"),
+                              top_annotation = HeatmapAnnotation(df = my_sample_col_final, col = ann_colors,
+                                                                 show_annotation_name = TRUE, show_legend = c(TRUE),
+                                                                 annotation_name_gp= gpar(fontsize = 8)),
+                              column_dend_height = unit(0.5, "in"),
+                              row_gap = unit(2, "mm"), border = TRUE, column_gap = unit(2, "mm"),
+                              border_gp = gpar(col = "black", lwd = 1),
+                              column_names_gp =  gpar(fontsize = 8),
+                              row_names_gp = gpar(fontsize = 10, alpha = 1, fontface = "plain",
+                                                  border = FALSE, col = "black"))
+
+draw(ht.overlap, annotation_legend_side = "left", heatmap_legend_side = "bottom")
+
+pdf(file = "22v32_RL_heatmap_figure.pdf", height = 7, width = 8)
+
+draw(ht.overlap, annotation_legend_side = "left", heatmap_legend_side = "bottom")
+
+dev.off()
+
+```
+

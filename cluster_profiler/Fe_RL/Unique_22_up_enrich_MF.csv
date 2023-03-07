@@ -1,2 +1,2 @@
 "","ID","Description","GeneRatio","BgRatio","pvalue","p.adjust","qvalue","geneID","Count"
-"GO:0043886","GO:0043886","structural constituent of carboxysome","3/28","5/1180",0.000116147151499404,0.0076657119989607,0.0076657119989607,"K04042/K08696/K08698",3
+"GO:0043886","GO:0043886","structural constituent of carboxysome","3/47","8/2107",0.000539014874404564,0.0425821750779605,0.0419864217957239,"K04042/K08696/K08698",3

@@ -1,2 +1,2 @@
 "","ID","Description","GeneRatio","BgRatio","pvalue","p.adjust","qvalue","geneID","Count"
-"ko00906","ko00906","Carotenoid biosynthesis","2/7","9/917",0.00175460685645422,0.0175460685645422,0.0147756366859303,"K02291/K02293",2
+"map00906","map00906","Carotenoid biosynthesis","2/5","56/13565",0.000166066213900294,0.002823125636305,0.00104883924568607,"K02291/K02293",2

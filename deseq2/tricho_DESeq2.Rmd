@@ -39,21 +39,22 @@ Remove duplicate KOs
 
 ```{r ddply, eval = TRUE, message = FALSE, warning = FALSE}
 # Gene counts were assigned to Kegg IDs and the duplicate KOs in the dataset will be merged.
-
+getwd()
 # did some work in excel to rename columns, and find and replace blanks KOs with "NA"
-df <- read.csv("deseq2/Tricho_fewarm_counts_stranded_v2.csv") 
+df <- read.csv("keggassign_tricho_counts_fordedup.csv") 
 
-df$KO <- ifelse(is.na(df$KO), df$gene_id, df$KO)
+df$gene_id <- ifelse(is.na(df$gene_id), df$Geneid, df$gene_id)
 df = df[,2:20]
-names(df)[which(names(df) == "KO")] <- "gene_id"
 
 colnames(df)
 summary(df) 
 head(df)
-dim(df) # there are 15,971 entries
+dim(df) # there are 5258 entries
+
 ddDF <- ddply(df,"gene_id",numcolwise(sum))
-dim(ddDF) # now there are  15,125 entries
-write.csv(ddDF,"deseq2/tricho_counts_deduped_forDESeq2.csv", row.names = FALSE)
+dim(ddDF) # now there are 4801 entries
+
+write.csv(ddDF,"tricho_counts_deduped_forDESeq2.csv", row.names = FALSE)
 ```
 
 Normalize data for subsequent analysis. After removing duplicates, the counts file will be trimmed to remove rows where the average of each treatment for a given gene is less than 5 (we keep genes where the average of at least one treatment is greater than 5). 
@@ -61,10 +62,10 @@ Normalize data for subsequent analysis. After removing duplicates, the counts fi
 ```{r trim, eval = TRUE, message = FALSE, warning = FALSE}
 # trimmed counts is the data where genes with low counts have been removed
 
-trim_df <- read_csv("deseq2/tricho_counts_deduped_forDESeq2.csv")
+trim_df <- read_csv("tricho_counts_deduped_forDESeq2.csv")
 head(trim_df)
 colnames(trim_df)
-dim(trim_df)  # 15,125 x 19
+dim(trim_df)  # 4801 x 19
 
 # calculate rowmeans
 mean.L22 <- as.numeric(rowMeans(trim_df[, 2:4]))
@@ -84,18 +85,19 @@ summary(trim_df2)
 colnames(trim_df2)
 names(trim_df2)[1] <- "gene_id"
 head(trim_df2)
+colnames(trim_df2)
 summary(trim_df2)
-dim(trim_df2) # 15,125 x 7
+dim(trim_df2) # 4801 x 7
 
 # temp effort to check against manual effort
-# write.csv(trim_df2,"deseq2/tricho_trimming_temp.csv", row.names = FALSE)
+write.csv(trim_df2,file="manual_effort.csv")
 
 # filter this rowMeans dataframe so that all rows where even one column is less than 5 is removed
 # I think what's actually happening is that if ALL rows are <5, they're removed. Idk which one I really want 
-trim_rows <- trim_df2 %>% dplyr::select(gene_id, starts_with("mean")) %>% filter_if(is.numeric, any_vars(. >= 5)) # should have 2843. Checked against a manual effort.
+trim_rows <- trim_df2 %>% dplyr::select(gene_id, starts_with("mean")) %>% filter_if(is.numeric, any_vars(. >= 5)) # should have 4088. Checked against a manual effort.
 
 summary(trim_rows)
-dim(trim_rows) # 4475 x 7
+dim(trim_rows) # 4088 x 7
 
 trimmed <- left_join(trim_rows, trim_df, by="gene_id")
 head(trimmed)
@@ -104,7 +106,7 @@ final_trim <- trimmed %>% dplyr::select(gene_id, !(starts_with("mean")))
 head(final_trim)
 summary(final_trim)
 
-write.csv(final_trim, file = "deseq2/tricho_trimmed_forDESeq2.csv", row.names = TRUE)
+write.csv(final_trim, file = "tricho_trimmed_forDESeq2.csv", row.names = TRUE)
 
 ```
 
@@ -113,14 +115,15 @@ Setting up the matrix for DESeq2 and generating normalized datasets.
 
 ```{r normalize, eval = TRUE, message = FALSE, warning = FALSE}
 
-cts <- read_csv("deseq2/tricho_trimmed_forDESeq2.csv")
+cts <- read_csv("tricho_trimmed_forDESeq2.csv")
 colnames(cts);
 cts <- cts[,3:20]
 colnames(cts)
 
 # column data is the metadata for the dataset
 ## the data has Sample, Treatment, Diel, and Design (combination of Treatment and Diel)
-col <- read.csv("deseq2/tricho_coldata_DESeq2.csv", header = TRUE)
+col <- read.csv("tricho_coldata_DESeq2.csv", header = TRUE)
+head(col)
 
 # set up DESeq2 matrix for Design
 dds <- DESeqDataSetFromMatrix(countData = cts, colData = col, design = ~ Design)
@@ -131,20 +134,20 @@ dds <- DESeqDataSetFromMatrix(countData = cts, colData = col, design = ~ Design)
 ddsNorm <- estimateSizeFactors(dds)
 sizeFactors(ddsNorm)
 normalized_counts <- counts(ddsNorm, normalized=TRUE)
-write.csv(as.data.frame(normalized_counts), file="deseq2/tricho_normcounts_forDGE.csv")
+write.csv(as.data.frame(normalized_counts), file="tricho_normcounts_forDGE.csv")
 
 # plot a PCA to check the data 
 vstcounts <- vst(dds, blind=FALSE)
-write.csv((assay(vstcounts)), file="deseq2/tricho_vstcounts_forDGE.csv")
+write.csv((assay(vstcounts)), file="tricho_vstcounts_forDGE.csv")
 head(assay(vstcounts), 3)
 plotPCA(vstcounts, intgroup=c("Treatment", "Temp"))
-ggsave("deseq2/PCA_vstcounts.pdf", height=75, width=120, units='mm', dpi=500)
-write.csv((assay(vstcounts)), file="deseq2/tricho_vstcounts_forDGE.csv")
+ggsave("PCA_vstcounts.pdf", height=75, width=120, units='mm', dpi=500)
+write.csv((assay(vstcounts)), file="tricho_vstcounts_forDGE.csv")
 # I added the line of code above but idk if I actually need it 
 rld <- rlog(dds, blind=FALSE)
 plotPCA(rld, intgroup=c("Treatment", "Design"))
-ggsave("deseq2/PCA_rdl.pdf", height=75, width=120, units='mm', dpi=500)
-write.csv((assay(rld)), file="deseq2/tricho_rldcounts_forDGE.csv")
+ggsave("PCA_rdl.pdf", height=75, width=120, units='mm', dpi=500)
+write.csv((assay(rld)), file="tricho_rldcounts_forDGE.csv")
 
 # don't use normalized counts (norm counts are used for comparison and other calculations)
 
@@ -156,7 +159,7 @@ write.csv((assay(rld)), file="deseq2/tricho_rldcounts_forDGE.csv")
 ddsObj <- DESeq(dds)
 res <- results(ddsObj, alpha = 0.05) # filtering set to alpha 0.05
 sum(res$padj < 0.05, na.rm=TRUE) # this pulls the number of genes with padj less than 0.05 (total) 
-# 1246
+# 1292 (increased slightly since using the other strains genome)
 
 # Replete v Limited by temperature 
 ## Replete v Limited Replete means that positive is upregulated for Replete relative to Limited
@@ -164,37 +167,37 @@ sum(res$padj < 0.05, na.rm=TRUE) # this pulls the number of genes with padj less
 #R22 vs L22
 df <- results(ddsObj, alpha = 0.05, contrast = c("Design", "R22", "L22"))
 summary(df)
-# 341 up
-# 327 down
-# 521 low counts 
+# 337 up 
+# 333 down
+# 238 low counts 
 # no outliers in any of these treatments here and below
 
 # write the file as a csv
 write.csv(as.data.frame(df),
-          file="deseq2/outputs/R22vL22_DESeqresults.csv")
+          file="outputs/R22vL22_DESeqresults.csv")
 
 
 #R27 vs L27
 df <- results(ddsObj, alpha = 0.05, contrast = c("Design", "R27", "L27"))
 summary(df)
-# 917 up
-# 759 down
-# 174 low counts 
+# 1008 up
+# 809 down
+# 80 low counts 
 
 # write the file as a csv
 write.csv(as.data.frame(df),
-          file="deseq2/outputs/R27vL27_DESeqresults.csv")
+          file="outputs/R27vL27_DESeqresults.csv")
 
 #R32 vs L32
 df <- results(ddsObj, alpha = 0.05, contrast = c("Design", "R32", "L32"))
 summary(df)
-# 414 up
-# 314 down
-# 0 low counts 
+# 354 up
+# 309 down
+# 634 low counts 
 
 # write the file as a csv
 write.csv(as.data.frame(df),
-          file="deseq2/outputs/R32vL32_DESeqresults.csv")
+          file="outputs/R32vL32_DESeqresults.csv")
 
 
 ## comparing sub (22) and supra (32) relative to optimum (27)
@@ -204,49 +207,49 @@ write.csv(as.data.frame(df),
 ## L22 vs L27 means that positive is upregulated for L22 relative to L27
 df <- results(ddsObj, alpha = 0.05, contrast = c("Design", "L22", "L27"))
 summary(df)
-# 672 up
-# 552 down
-# 694 low counts 
+# 749 up
+# 596 down
+# 159 low counts 
 
 # write the file as a csv
 write.csv(as.data.frame(df),
-          file="deseq2/outputs/L22vL27_DESeqresults.csv")
+          file="outputs/L22vL27_DESeqresults.csv")
 
 #L27 vs L32
 ## L27 v L32 means that positive is upregulated for L27 relative to L32
 df <- results(ddsObj, alpha = 0.05, contrast = c("Design", "L27", "L32"))
 summary(df)
-# 613 up
-# 652 down
-# 521 low counts 
+# 684 up
+# 778 down
+# 238 low counts 
 
 # write the file as a csv
 write.csv(as.data.frame(df),
-          file="deseq2/outputs/L27vL32_DESeqresults.csv")
+          file="outputs/L27vL32_DESeqresults.csv")
 
 #R22 vs R27
 ## R22 v R27 means that positive is upregulated for R22 relative to R27
 df <- results(ddsObj, alpha = 0.05, contrast = c("Design", "R22", "R27"))
 summary(df)
-# 438 up
-# 485 down
-# 434 low counts 
+# 416 up
+# 410 down
+# 159 low counts 
 
 # write the file as a csv
 write.csv(as.data.frame(df),
-          file="deseq2/outputs/R22vR27_DESeqresults.csv")
+          file="outputs/R22vR27_DESeqresults.csv")
 
 #R27 vs R32
 ## R27 v R32 means that positive is upregulated for R27 relative to R32
 df <- results(ddsObj, alpha = 0.05, contrast = c("Design", "R27", "R32"))
 summary(df)
-# 316 up
-# 223 down
-# 868 low counts 
+# 257 up
+# 212 down
+# 634 low counts 
 
 # write the file as a csv
 write.csv(as.data.frame(df),
-          file="deseq2/outputs/R27vR32_DESeqresults.csv")
+          file="outputs/R27vR32_DESeqresults.csv")
 
 
 # sub (27) vs supra (32)
@@ -255,24 +258,24 @@ write.csv(as.data.frame(df),
 ## R22 v R32 means that positive is upregulated for R22 relative to R32
 df <- results(ddsObj, alpha = 0.05, contrast = c("Design", "R22", "R32"))
 summary(df)
-# 610 up
-# 565 down
-# 0 low counts 
+# 586 up
+# 506 down
+# 159 low counts 
 
 # write the file as a csv
 write.csv(as.data.frame(df),
-          file="deseq2/outputs/R22vR32_DESeqresults.csv")
+          file="outputs/R22vR32_DESeqresults.csv")
 
 #L22 vs L32
 ## L22 v L32 means that positive is upregulated for L22 relative to L32
 df <- results(ddsObj, alpha = 0.05, contrast = c("Design", "L22", "L32"))
 summary(df)
-# 683 up
-# 650 down
-# 347 low counts 
+# 656 up
+# 606 down
+# 238 low counts 
 
 # write the file as a csv
 write.csv(as.data.frame(df),
-          file="deseq2/outputs/L22vL32_DESeqresults.csv")
+          file="outputs/L22vL32_DESeqresults.csv")
 
 ```

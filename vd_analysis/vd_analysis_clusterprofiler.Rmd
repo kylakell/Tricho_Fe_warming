@@ -46,7 +46,7 @@ tail(bg)
 # BP
 bg_BP <- filter(bg, GO.Ontology == "BP")
 head(bg_BP)
-nrow(bg_BP)
+nrow(bg_BP) #17378
 
 go2gene_BP <- bg_BP[, c("GO.ID", "gene_id")]
 go2name_BP <- bg_BP[, c("GO.ID", "GO.Term")]
@@ -54,7 +54,7 @@ go2name_BP <- bg_BP[, c("GO.ID", "GO.Term")]
 # MF
 bg_MF <- filter(bg, GO.Ontology == "MF")
 head(bg_MF)
-nrow(bg_MF)
+nrow(bg_MF) # 8748
 
 go2gene_MF <- bg_MF[, c("GO.ID", "gene_id")]
 go2name_MF <- bg_MF[, c("GO.ID", "GO.Term")]
@@ -62,17 +62,19 @@ go2name_MF <- bg_MF[, c("GO.ID", "GO.Term")]
 # CC
 bg_CC <- filter(bg, GO.Ontology == "CC")
 head(bg_CC)
-nrow(bg_CC)
+nrow(bg_CC) # 4535
 
 go2gene_CC <- bg_CC[, c("GO.ID", "gene_id")]
 go2name_CC <- bg_CC[, c("GO.ID", "GO.Term")]
 
 # KO
-bg_KO <- read_csv("filtered_tricho_kofamscan.csv", col_names = TRUE) # this is the file that will be used for the universe or background genes
+bg_KO <- read_csv("TeryIMS101_kofamscan.csv", col_names = TRUE) # this is the file that will be used for the universe or background genes
 colnames(bg_KO)
+
 bg_KO <- bg_KO$gene_id
 head(bg_KO)
 tail(bg_KO)
+dim(bg_KO) #1971
 ```
 
 **3. Process the DESeq2 outputs to generate Venn Diagrams and clusterProfiler inputs**
@@ -104,11 +106,12 @@ summary(sub_df)
 head(sub_df)
 subRL <- dplyr::select(sub_df, gene_id, log2FoldChange, padj) # select relevant columns
 head(subRL)
-dim(subRL) # 4475 all DGEs
+dim(subRL) # 4088 all DGEs
+write.csv(subRL, file="../deseq2/outputs_annot/R22vL22_annot_DESeqresults.csv")
 subRL.vector <- dplyr::filter(subRL, padj < 0.05) # all the differentially expressed sub RL genes 
 head(subRL.vector)
 subRL.vector <-  dplyr::select(subRL.vector, gene_id, log2FoldChange) #remove padj column
-dim(subRL.vector) # 668 significant DGEs
+dim(subRL.vector) # 670 significant DGEs
 head(subRL.vector)
 names(subRL.vector)[2] <- "subRL_FC"
 head(subRL.vector)
@@ -119,11 +122,12 @@ summary(opt_df)
 head(opt_df)
 optRL <- dplyr::select(opt_df, gene_id, log2FoldChange, padj) # select relevant columns
 head(optRL)
-dim(optRL) #4475
+dim(optRL) #4088
 optRL.vector <- dplyr::filter(optRL, padj < 0.05) # all the differentially expressed opt RL genes 
 head(optRL.vector)
+write.csv(optRL, file="../deseq2/outputs_annot/R27vL27_annot_DESeqresults.csv")
 optRL.vector <-  dplyr::select(optRL.vector, gene_id, log2FoldChange) #remove padj column
-dim(optRL.vector) #1676
+dim(optRL.vector) #1817
 head(optRL.vector)
 names(optRL.vector)[2] <- "optRL_FC"
 head(optRL.vector)
@@ -134,11 +138,12 @@ summary(supra_df)
 head(supra_df)
 supraRL <- dplyr::select(supra_df, gene_id, log2FoldChange, padj) # select relevant columns
 head(supraRL)
-dim(supraRL) #4475
+dim(supraRL) #4088
 supraRL.vector <- dplyr::filter(supraRL, padj < 0.05) # all the differentially expressed supra RL genes 
 head(supraRL.vector)
+write.csv(supraRL, file="../deseq2/outputs_annot/R32vL32_annot_DESeqresults.csv")
 supraRL.vector <-  dplyr::select(supraRL.vector, gene_id, log2FoldChange) #remove padj column
-dim(supraRL.vector) #728
+dim(supraRL.vector) #663
 head(supraRL.vector)
 names(supraRL.vector)[2] <- "supraRL_FC"
 head(supraRL.vector)
@@ -149,20 +154,36 @@ head(supraRL.vector)
 
 RL.vector <- left_join(gene_id, subRL.vector, by = "gene_id")
 head(RL.vector)
-dim(RL.vector) #4475 x 3
+dim(RL.vector) #4088 x 3
 
 RL.vector <- left_join(RL.vector, optRL.vector, by = "gene_id")
-dim(RL.vector) #4475 x 4
+dim(RL.vector) #4088 x 4
 head(RL.vector)
 
 RL.vector <- left_join(RL.vector, supraRL.vector, by = "gene_id")
 head(RL.vector)
-dim(RL.vector) #4475 x 5
+dim(RL.vector) #4088 x 5
 
 head(RL.vector, 10)
 tail(RL.vector, 10)
 
 # so now I have the log fold change values for each gene_id for repelte v limited for each temp
+
+# doing my own thing to look and individual genes
+
+RL.vector.all <- left_join(gene_id, subRL, by = "gene_id")
+RL.vector.all <- left_join(RL.vector.all, optRL, by = "gene_id")
+RL.vector.all <- left_join(RL.vector.all, supraRL, by = "gene_id")
+RL.vector.all <-  dplyr::select(RL.vector.all, gene_id,log2FoldChange.x ,padj.x, log2FoldChange.y, padj.y, log2FoldChange,padj) #Remove padj column
+
+names(RL.vector.all)[2] <- "subRL_FC"
+names(RL.vector.all)[4] <- "optRL_FC"
+names(RL.vector.all)[6] <- "supraRL_FC"
+names(RL.vector.all)[3] <- "subR_padj"
+names(RL.vector.all)[5] <- "optRL_padj"
+names(RL.vector.all)[7] <- "supraRL_padj"
+
+write.csv(RL.vector.all,"../deseq2/outputs_annot/RL_all.csv")
 ```
 
 # venn diagram
@@ -213,13 +234,13 @@ neg_venn_supra <- venn_df %>%
   filter(exp_type == "supraRL_FC" & !is.na(foldchange) & foldchange < 0) %>% 
   pull(gene_id)
 
-summary(pos_venn_sub) #341
-summary(pos_venn_opt) #917
-summary(pos_venn_supra) #414
+summary(pos_venn_sub) #337
+summary(pos_venn_opt) #1008
+summary(pos_venn_supra) #354
 
-summary(neg_venn_sub) #327
-summary(neg_venn_opt) #759
-summary(neg_venn_supra) #314
+summary(neg_venn_sub) #333
+summary(neg_venn_opt) #809
+summary(neg_venn_supra) #309
 
 venn_list_pos <- list("22C" = pos_venn_sub,
                       "27C" = pos_venn_opt,
@@ -808,6 +829,8 @@ write.csv(enrich, file="../cluster_profiler/Fe_RL/Unique_32_down_enrich_KO.csv",
 ```
 
 ### 3.2: R vs L for different temperatures
+# yeah I still don't understand how this is different from above
+# I think its the same, it just doesn't have overlap analysis
 
 ```{r RL_input_temp, eval = TRUE, message = FALSE, warning = FALSE}
 
@@ -833,11 +856,11 @@ summary(sub_df)
 head(sub_df)
 subRL <- dplyr::select(sub_df, gene_id, log2FoldChange, padj) # select relevant columns
 head(subRL)
-dim(subRL) #4475
+dim(subRL) #4088
 subRL.vector <- dplyr::filter(subRL, padj < 0.05) # all the differentially expressed sub RL genes 
 head(subRL.vector)
 subRL.vector <- dplyr::select(subRL.vector, gene_id, log2FoldChange) #remove padj column
-dim(subRL.vector) #668
+dim(subRL.vector) #670
 head(subRL.vector)
 names(subRL.vector)[2] <- "subRL_FC"
 head(subRL.vector)
@@ -845,11 +868,11 @@ tail(subRL.vector)
 
 # for replete
 sub_rep <- filter(subRL.vector, subRL_FC > 0 )
-dim(sub_rep) #341
+dim(sub_rep) #337
 
 # for limited
 sub_lim <- filter(subRL.vector, subRL_FC < 0 )
-dim(sub_lim) #327
+dim(sub_lim) #333
 
 # opt 
 opt_df <- cbind(gene_id, opt) # append gene_ids
@@ -857,22 +880,22 @@ summary(opt_df)
 head(opt_df)
 optRL <- dplyr::select(opt_df, gene_id, log2FoldChange, padj) # select relevant columns
 head(optRL)
-dim(optRL) #4475
+dim(optRL) #4088
 optRL.vector <- dplyr::filter(optRL, padj < 0.05) # all the differentially expressed opt RL genes 
 head(optRL.vector)
 optRL.vector <- dplyr::select(optRL.vector, gene_id, log2FoldChange) #remove padj column
-dim(optRL.vector) #1676
+dim(optRL.vector) #1817
 head(optRL.vector)
 names(optRL.vector)[2] <- "optRL_FC"
 head(optRL.vector)
 
 # for replete
 opt_rep <- filter(optRL.vector, optRL_FC > 0 )
-dim(opt_rep) #917
+dim(opt_rep) #1008
 
 # for limited
 opt_lim <- filter(optRL.vector, optRL_FC < 0 )
-dim(opt_lim) #759
+dim(opt_lim) #809
 
 # supra 
 supra_df <- cbind(gene_id, supra) # append gene_ids
@@ -880,22 +903,24 @@ summary(supra_df)
 head(supra_df)
 supraRL <- dplyr::select(supra_df, gene_id, log2FoldChange, padj) # select relevant columns
 head(supraRL)
-dim(supraRL) #728
+dim(supraRL) #4088
 supraRL.vector <- dplyr::filter(supraRL, padj < 0.05) # all the differentially expressed supra RL genes 
 head(supraRL.vector)
 supraRL.vector <- dplyr::select(supraRL.vector, gene_id, log2FoldChange) #remove padj column
-dim(supraRL.vector) #728
+dim(supraRL.vector) #663
 head(supraRL.vector)
 names(supraRL.vector)[2] <- "supraRL_FC"
 head(supraRL.vector)
 
 # for replete
 supra_rep <- filter(supraRL.vector, supraRL_FC > 0 )
-dim(supra_rep) #414
+dim(supra_rep) #354
 
 # for limited
 supra_lim <- filter(supraRL.vector, supraRL_FC < 0 )
-dim(supra_lim) #314
+dim(supra_lim) #309
+
+# need to add stuff to extract it all into a csv together 
 
 # need to run clusterprofilers on these dataframes
 head(sub_rep)
@@ -909,7 +934,7 @@ head(supra_lim)
 # cluster profiler 
 ```{r RL_input_temp, eval = TRUE, message = FALSE, warning = FALSE}
 
-## Sub rep
+## Sub (22) rep
 df <- sub_rep
 head(df)
 df_ids <- df$gene_id
@@ -1093,11 +1118,11 @@ summary(sub_df)
 head(sub_df)
 subR <- dplyr::select(sub_df, gene_id, log2FoldChange, padj) # select relevant columns
 head(subR)
-dim(subR) #4475
+dim(subR) #4088
 subR.vector <- dplyr::filter(subR, padj < 0.05) 
 head(subR.vector)
 subR.vector <- dplyr::select(subR.vector, gene_id, log2FoldChange) #remove padj column
-dim(subR.vector) #922
+dim(subR.vector) #826
 head(subR.vector)
 names(subR.vector)[2] <- "subR_FC"
 head(subR.vector)
@@ -1114,11 +1139,11 @@ summary(opt_df)
 head(opt_df)
 optR <- dplyr::select(opt_df, gene_id, log2FoldChange, padj) # select relevant columns
 head(optR)
-dim(optR) #4475
+dim(optR) #4088
 optR.vector <- dplyr::filter(optR, padj < 0.05) # all the differentially expressed opt RL genes 
 head(optR.vector)
 optR.vector <- dplyr::select(optR.vector, gene_id, log2FoldChange) #remove padj column
-dim(optR.vector) #539
+dim(optR.vector) #469
 head(optR.vector)
 names(optR.vector)[2] <- "optR_FC"
 head(optR.vector)
@@ -1135,11 +1160,11 @@ summary(supra_df)
 head(supra_df)
 supraR <- dplyr::select(supra_df, gene_id, log2FoldChange, padj) # select relevant columns
 head(supraR)
-dim(supraR) #4475
+dim(supraR) #4088
 supraR.vector <- dplyr::filter(supraR, padj < 0.05)
 head(supraR.vector)
 supraR.vector <- dplyr::select(supraR.vector, gene_id, log2FoldChange) #remove padj column
-dim(supraR.vector)#1175
+dim(supraR.vector)#1092
 head(supraR.vector)
 names(supraR.vector)[2] <- "supraR_FC"
 head(supraR.vector)
@@ -1150,6 +1175,21 @@ write.csv(supraR.vector.up, file="../cluster_profiler/vectors/R22vR32_up_vector.
 
 write.csv(supraR.vector.down, file="../cluster_profiler/vectors/R22vR32_down_vector.csv", row.names = TRUE) # for clusterProfiler
 
+# doing my own thing to look and individual genes
+
+R.vector.all <- left_join(gene_id, subR, by = "gene_id")
+R.vector.all <- left_join(R.vector.all, optR, by = "gene_id")
+R.vector.all <- left_join(R.vector.all, supraR, by = "gene_id")
+R.vector.all <-  dplyr::select(R.vector.all, gene_id,log2FoldChange.x ,padj.x, log2FoldChange.y, padj.y, log2FoldChange,padj) #Remove padj column
+
+names(R.vector.all)[2] <- "R22vR27_FC"
+names(R.vector.all)[4] <- "R27vR32_FC"
+names(R.vector.all)[6] <- "R22vR32_FC"
+names(R.vector.all)[3] <- "R22vR27_padj"
+names(R.vector.all)[5] <- "R27vR32_padj"
+names(R.vector.all)[7] <- "R22vR32_padj"
+
+write.csv(R.vector.all,"../deseq2/outputs_annot/R_all.csv")
 
 # set up limited
 
@@ -1171,11 +1211,11 @@ summary(sub_df)
 head(sub_df)
 subL <- dplyr::select(sub_df, gene_id, log2FoldChange, padj) # select relevant columns
 head(subL)
-dim(subL) #4475
+dim(subL) #4088
 subL.vector <- dplyr::filter(subL, padj < 0.05)
 head(subL.vector) #1224
 subL.vector <- dplyr::select(subL.vector, gene_id, log2FoldChange) #remove padj column
-dim(subL.vector)
+dim(subL.vector) #1345
 head(subL.vector)
 names(subL.vector)[2] <- "subL_FC"
 head(subL.vector)
@@ -1192,11 +1232,11 @@ summary(opt_df)
 head(opt_df)
 optL <- dplyr::select(opt_df, gene_id, log2FoldChange, padj) # select relevant columns
 head(optL)
-dim(optL) #4475
+dim(optL) #4088
 optL.vector <- dplyr::filter(optL, padj < 0.05) # all the differentially expressed opt RL genes 
 head(optL.vector)
 optL.vector <- dplyr::select(optL.vector, gene_id, log2FoldChange) #remove padj column
-dim(optL.vector) #1265
+dim(optL.vector) #1462
 head(optL.vector)
 names(optL.vector)[2] <- "optL_FC"
 head(optL.vector)
@@ -1213,11 +1253,11 @@ summary(supra_df)
 head(supra_df)
 supraL <- dplyr::select(supra_df, gene_id, log2FoldChange, padj) # select relevant columns
 head(supraL)
-dim(supraL) #4475
+dim(supraL) #4088
 supraL.vector <- dplyr::filter(supraL, padj < 0.05) # all the differentially expressed supra RL genes 
 head(supraL.vector)
 supraL.vector <- dplyr::select(supraL.vector, gene_id, log2FoldChange) #remove padj column
-dim(supraL.vector) #1333
+dim(supraL.vector) #1262
 head(supraL.vector)
 names(supraL.vector)[2] <- "supraL_FC"
 head(supraL.vector)
@@ -1227,6 +1267,23 @@ supraL.vector.down <- dplyr::filter(supraL.vector, supraL_FC < 0)
 write.csv(supraL.vector.up, file="../cluster_profiler/vectors/L22vL32_up_vector.csv", row.names = TRUE) # for clusterProfiler
 
 write.csv(supraL.vector.down, file="../cluster_profiler/vectors/L22vL32_down_vector.csv", row.names = TRUE) # for clusterProfiler
+
+# doing my own thing to look and individual genes
+
+L.vector.all <- left_join(gene_id, subL, by = "gene_id")
+L.vector.all <- left_join(L.vector.all, optL, by = "gene_id")
+L.vector.all <- left_join(L.vector.all, supraL, by = "gene_id")
+L.vector.all <-  dplyr::select(L.vector.all, gene_id,log2FoldChange.x ,padj.x, log2FoldChange.y, padj.y, log2FoldChange,padj) #Lemove padj column
+
+names(L.vector.all)[2] <- "L22vL27_FC"
+names(L.vector.all)[4] <- "L27vL32_FC"
+names(L.vector.all)[6] <- "L22vL32_FC"
+names(L.vector.all)[3] <- "L22vL27_padj"
+names(L.vector.all)[5] <- "L27vL32_padj"
+names(L.vector.all)[7] <- "L22vL32_padj"
+
+write.csv(L.vector.all,"../deseq2/outputs_annot/L_all.csv")
+
 ```
 
 # cluster profiler for temp v temp within each nutrient treatment 
@@ -1490,6 +1547,7 @@ write.csv(enrich, file="../cluster_profiler/L_temp_comparisons/L27vL32_down_KO.c
 # set up replete day dataframes
 sub <- read_csv("../deseq2/outputs/R22vR27_DESeqresults.csv")
 head(sub)
+
 supra <- read_csv("../deseq2/outputs/R27vR32_DESeqresults.csv")
 head(supra)
 
@@ -1499,11 +1557,11 @@ summary(sub_df)
 head(sub_df)
 subR <- dplyr::select(sub_df, gene_id, log2FoldChange, padj) # select relevant columns
 head(subR)
-dim(subR) #4475
+dim(subR) #4088
 subR.vector <- dplyr::filter(subR, padj < 0.05) 
 head(subR.vector)
 subR.vector <- dplyr::select(subR.vector, gene_id, log2FoldChange) #remove padj column
-dim(subR.vector) #922
+dim(subR.vector) #826
 head(subR.vector)
 names(subR.vector)[2] <- "subR_FC"
 head(subR.vector)
@@ -1514,23 +1572,24 @@ summary(supra_df)
 head(supra_df)
 supraR <- dplyr::select(supra_df, gene_id, log2FoldChange, padj) # select relevant columns
 head(supraR)
-dim(supraR) #4475
+dim(supraR) #4088
 supraR.vector <- dplyr::filter(supraR, padj < 0.05) # all the differentially expressed supra RL genes 
 head(supraR.vector)
 supraR.vector <- dplyr::select(supraR.vector, gene_id, log2FoldChange) #remove padj column
-dim(supraR.vector)#539
+dim(supraR.vector)#469
 head(supraR.vector)
 names(supraR.vector)[2] <- "supraR_FC"
 head(supraR.vector)
 
 # start with the list of all relevant genes (the full list of deduped and trimmed list of genes)
 R.vector <- left_join(gene_id, subR.vector, by = "gene_id")
-dim(R.vector) #4475
+dim(R.vector) #4088
 head(R.vector)
 tail(R.vector)
+
 R.vector <- left_join(R.vector, supraR.vector, by = "gene_id")
 head(R.vector)
-dim(R.vector) #4475
+dim(R.vector) #4088
 head(R.vector, 10)
 tail(R.vector, 10)
 
@@ -1558,10 +1617,11 @@ neg_venn_sub <- venn_df %>%
 neg_venn_supra <- venn_df %>% 
   filter(exp_type == "supraR_FC" & !is.na(foldchange) & foldchange > 0) %>% 
   pull(gene_id)
-summary(pos_venn_sub)
-summary(pos_venn_supra)
-summary(neg_venn_sub)
-summary(neg_venn_supra)
+
+summary(pos_venn_sub)#416
+summary(pos_venn_supra) #212
+summary(neg_venn_sub) #333
+summary(neg_venn_supra) #257
 venn_list_pos <- list("22C" = pos_venn_sub,
                       "32C" = pos_venn_supra)
 venn_list_neg <- list("22C" = neg_venn_sub,
@@ -1892,11 +1952,11 @@ summary(sub_df)
 head(sub_df)
 subL <- dplyr::select(sub_df, gene_id, log2FoldChange, padj) # select relevant columns
 head(subL)
-dim(subL) #4475
+dim(subL) #4088
 subL.vector <- dplyr::filter(subL, padj < 0.05) 
 head(subL.vector)
 subL.vector <- dplyr::select(subL.vector, gene_id, log2FoldChange) #remove padj column
-dim(subL.vector) #1224
+dim(subL.vector) #1345
 head(subL.vector)
 names(subL.vector)[2] <- "subL_FC"
 head(subL.vector)
@@ -1907,22 +1967,22 @@ summary(supra_df)
 head(supra_df)
 supraL <- dplyr::select(supra_df, gene_id, log2FoldChange, padj) # select relevant columns
 head(supraL)
-dim(supraL) #4475
+dim(supraL) #4088
 supraL.vector <- dplyr::filter(supraL, padj < 0.05) # all the differentially expressed supra LL genes 
 head(supraL.vector)
 supraL.vector <- dplyr::select(supraL.vector, gene_id, log2FoldChange) #remove padj column
-dim(supraL.vector) #1265
+dim(supraL.vector) #1462
 head(supraL.vector)
 names(supraL.vector)[2] <- "supraL_FC"
 head(supraL.vector)
 
 # start with the list of all relevant genes (the full list of deduped and trimmed list of genes)
 L.vector <- left_join(gene_id, subL.vector, by = "gene_id")
-dim(L.vector) #4475
+dim(L.vector) #4088
 head(L.vector)
 L.vector <- left_join(L.vector, supraL.vector, by = "gene_id")
 head(L.vector)
-dim(L.vector) #4475
+dim(L.vector) #4088
 head(L.vector, 10)
 tail(L.vector, 10)
 
@@ -2006,7 +2066,7 @@ sub_df <- sub_df[is.na(sub_df$...1.y),]
 # the above line is finding the difference between the core and the core + sub
 head(sub_df)
 summary(sub_df)
-dim(sub_df) #353
+dim(sub_df) #360
 write.csv(sub_df$x,"vd_vOpt/VD_L_upregulated_22v27_deduped.csv", row.names = TRUE)
 
 # 32 vs 27 genes
@@ -2069,7 +2129,7 @@ sub_df
 summary(sub_df)
 head(sub_df)
 sub_df <- sub_df[is.na(sub_df$...1.y),]
-dim(sub_df) #280
+dim(sub_df) #293
 head(sub_df)
 summary(sub_df)
 
@@ -2087,7 +2147,7 @@ supra_df
 summary(supra_df)
 head(supra_df)
 supra_df <- supra_df[is.na(supra_df$...1.y),]
-dim(supra_df) #341
+dim(supra_df) #381
 head(supra_df, 10)
 tail(supra_df, 10)
 summary(supra_df)
